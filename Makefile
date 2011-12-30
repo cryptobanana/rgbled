@@ -1,16 +1,15 @@
 MCU = attiny25
-F_CPU = 8000000   	# 8 MHz
+# 8 MHz
+F_CPU = 8000000
 AVRDUDE_PROGRAMMER = usbtiny
-AVRDUDE_PORT = usb	# programmer connected to USB
+# programmer connected to USB
+AVRDUDE_PORT = usb
 
 
-# Default target.
-all: 	begin gccversion \
-	minipov.hex all_leds.hex alt_leds.hex mypov.hex test_leds.hex \
-	largeimage.hex\
-	finished end
+all: program-rgb
 
-# Program the device
+build-rgb: rgb.hex
+
 program-rgb: rgb.hex
 
 # this is necessary if you're burning the AVR for the first time...
@@ -76,23 +75,12 @@ AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 
 # ---------------------------------------------------------------------------
 
-# Define directories, if needed.
-DIRAVR = c:/progra~1/winavr
-DIRAVRBIN = $(DIRAVR)/bin
-DIRAVRUTILS = $(DIRAVR)/utils/bin
-DIRINC = .
-DIRLIB = $(DIRAVR)/avr/lib
-
-
 # Define programs and commands.
 SHELL = sh
-
 CC = avr-gcc
-
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size
-
 REMOVE = rm -f
 COPY = cp
 
@@ -193,7 +181,6 @@ clean_list :
 	$(REMOVE) *.hex
 	$(REMOVE) *.lst
 	$(REMOVE) *.obj
-	$(REMOVE) *.c
 	$(REMOVE) *.elf
 	$(REMOVE) *.o
 

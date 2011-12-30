@@ -8,163 +8,62 @@ Mitch Altman
 21-Dec-11 -- hacked for Dan's RGB LED modules
 
 Distributed under Creative Commons 3.0 -- Attib & Share Alike
-
-For this project, I hacked a previous project of mine, called Trippy RGB Light.
-The Trippy RGB Light was hacked from Ladyada's MiniPOV3 kit. Ladyada has a
-great website about the MiniPOV kit, from which this project was hacked:
-http://ladyada.net/make/minipov3/index.html
-
---------------------------------------------------------------------------------
-This project provides a good example of how to use Pulse Width Modulation (PWM)
-to fade a voltage up or down (in this case, the changing voltage is used to
-control the brightness of Red, Green, and Blue LEDs).
-
-We will use one of the two hardware timers that are embedded inside of the
-ATtiny25, set up to control PWM for the Red LED and the Blue LED.  Since there
-are only two timer compare regsiters on the one hardware timer, we will create
-PWM for the Green LED by manually pulsing it in a firmware loop.  (The other
-hardware timer will be used to pulse an IR emitter at 38KHz.)
-
-With PWM, we vary the amount of time an LED is on versus how long it is off.
-We repeatedly turn an LED on and off very quickly (so quickly you can't see it
-blink).  If the LED is on 50% of the time (and off for 50% of the time), it
-will be half as bright as if it were on all of the time.  Each time we turn the
-LED on and off, the amount of time it is on, added to the amount of time it is
-off, always equals the same length of time (this length of time is known as the
-"PWM period").  It doesn't really matter what the PWM period is, as long as it
-is short enough that we can't perceive the the LED flicker.  We can perceive
-flickering if an LED blinks slower than about 1/30 of a second, or about 0.033
-seconds (or 30Hz).  In this firmware, I keep the PWM period to less than 0.01
-seconds (faster than 100Hz) so there is no perceieved flicker (though it is
-interesting to wave the unit back and forth while it is running, and you can
-actually see the PWM pusle widths widen and shrink over time).
-
---------------------------------------------------------------------------------
-This project also provides a simple example of how to use interrupts.  An
-interrupt is a function like any other, except rather than being called from
-somewhere in the firmware, it is called by a hardware event.  In the case of
-this firmware, the interrupt function is called whenever the IR detector sees
-IR light.
-
-An interrupt function is conventionally called "Interrupt Service Routine", or
-"ISR".  The IR detector is connected to PB3 (set up as an input pin).  PB3 can
-be set up so that whenever it sees a logic change from Low to High or from High
-to Low, it calls an ISR named PCINT0.  Below you will see the following code:
-ISR(PCINT0_vect) { Start_Over = 0;  // For Dan: this ISR now does nothing }
-This is the ISR.  All it does is set a variable that the main routine will see,
-and when the main routine sees it, it jumps to the beginning to start the
-firmware over.
-
-To enable the PCINT0 interrupt, we need to do a few things.  First of all, we
-need to include the header for interrupt handling.  You will see the following
-include statement, below, to handle that: include <avr/interrupt.h> Next we
-need to set up two control registers in the ATtiny25 to tell it to generate
-interrupts for PB3 logic change (the AVR datasheet calls this a "Pin Change
-Interrupt").  You will see the following two lines in the main function, below:
-GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts PCMSK =
-0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
-
-Finally, we need to enable the interrupts for the ATtiny25.  This line
-accomplishes that: sei();  // enable microcontroller interrupts
-
-When we are finished, before putting the microcontroller to sleep, we disable
-interrupts with the following line of code: cli();  // disable microcontroller
-interrupts
-
-
-A very brief tutorial about binary numbers, bits, bytes, and regsiters:
---------------------------------------------------------------------------------
-
-Most microcontrollers use 8-bit numbers, and all of the bits must have a value
-of either 0 or 1.  So, for microcontrollers, the decimal number 23 is
-represented as 00010111 (the three left-most zeros mean that there are no
-"thirty-twos", no "sixty-fours", no "one-hundred-twenty-eights").  The bits in
-a binary number are labeled from the right starting with the number 0.  So, the
-right-most bit is called "bit 0", and the bit to that is to the left of it is
-called "bit 1", all of the way to the left-most bit of an 8-bit number which is
-called "bit 7".
-
-A "Byte" means 8 bits.  A "Word" means 16 bits, or two bytes.  And, while I'm
-at it, I may as well let you know that a "Nybble" is 4 bits, and there are two
-nybbles to a byte.
-
-The ATtiny25 microcontroller is an 8-bit microcontroller.  This means that all
-quantities inside of the microcontroller are 8-bit quantities.  The C language
-can use values that are larger than 8 bits.  The gcc compiler can use 8-bit
-values, 16-bit values, and 32-bit values.  The 8-bit values are "char", the
-16-bit values are "int", and the 32-bit values are "long int".  (Other C
-compilers may be different.)  We use "unsigned" versions of these, since we are
-not using negative values in this firmware.  The C compiler converts all
-numbers to combinations of 8-bit numbers, since that is all that the
-microcontroller can handle (how it does this is a for another discussion
-later).
-
-C compilers can interpret numbers as decimal numbers, binary numbers, or
-hexadecimal (base-16) numbers.  For the gcc compiler, binary numbers are
-preceded with "0b", hexadecimal numbers are preceded with "0x", and decimal
-numbers are not preceded with anything.  So, to express the number 23 in binary
-so that the gcc compiler knows you mean "twenty-three", rather than
-"ten-thousand one-hundred and eleven", you write it like this:  0b00010111 This
-same number also means that bit 0 is High, bit 1 is High, bit 2 is High, bit 4
-is High, and all other bits are Low (bits 3, 5, 6, and 7).
-
-In hexadecimal, each byte has two nybbles, and each nybble is a power of 16.
-For example, 0x17 means one "sixteen" plus 7 "ones", or the decimal number 23
-(which means that bits 0, 1, 2, and 4 are High, and bits 3, 5, 6, and 7 are
-Low).
-
-So, for the gcc compiler, all three of these numbers mean exactly the same
-thing:
-   23
-   0b00010111
-   0x17
-
-Microcontrollers have some special memory locations that are called
-"registers".  Registers control the hardware in the microcontroller.  For
-example, the DDRB register for the ATtiny25 controls which of the pins on the
-microcontroller are inputs and outputs, and the TCCR0B register controls some
-aspects of how the internal hardware Timer 0 will function.  For the ATtiny25,
-registers are all 8-bits.
-
-In the datasheet for the AVR microcontrollers, Atmel (who makes them) uses a
-somewhat confusing convention for describing bits in an 8-bit register.  For
-example, TCCR0B is the Timer/Counter Control Register B for Timer 0 (there is
-also a Register A, and there is also a TCCR1 register, but since there
-is only one register for Timer 1, there is no A and B).  Within TCCR0B there
-are 8 bits, defined like this:
-   FOC0A   FOC0B   --   --   WGM02   CS02   CS01   CS00
-There are three bits that start with "CS0":  CS02, CS01, CS00.  To refer to all
-three of these in the same sentence, Atmel will refer to them as "CS02:0",
-which means CS0 bit 2 through CS0 bit 0.  Pretty messed up, but that's what we
-need to live with.  (And, by the way, these bits are "Clock Select" bits, which
-tell the microcontroller how to select the clock, which is the heart-beat that
-controls the speed at which the Timer 0 runs.) The dashes mean that bit 4 and
-bit 5 are not used.  I won't define the other bits here.
-
-You will see the above definitions in the firmware and comments, below.  For
-example, in the comments in the main program, under the statement where we are
-setting up the TCCR0B register for Timer 0, you will see:
-// CS02:00=001 for divide by 1 prescaler (this starts Timer0)
-This means that CS0 bit 2 is 0, CS0 bit 1 is 0, and CS0 bit 0 is 1 (or stated
-another way, the three CS0 bits are set to 001).
-
-The datasheet describes in great depth all of the registers and functionality
-of the ATtiny25 microcontroller.  I downloaded my copy of the datasheet from
-here: http://www.atmel.com/dyn/resources/prod_documents/doc2586.pdf
-But if that link is dead by the time you read this, just do a search for atmel
-attiny25 datasheet and you'll come up with the latest version.
 */
 
 /*
-This project has one RGB LED.
-The light from the LED should be diffused so that the light from
-it mixes together (a short section of white drinking straw works well).
-The firmware goes through a sequence, mixing various amounts of brightness
-of R, G, and B to create various different colors, and blinking and fading
-these colors to create a trippy effect.
-You can easily change this firmware to create your own sequences of colors!
+We will use one of the two hardware timers that are embedded inside of the ATtiny25,
+set up to control PWM for the Red LED and the Blue LED.  Since there are only two
+timer compare regsiters on the one hardware timer, we will create PWM for the Green LED
+by manually pulsing it in a firmware loop.
+(The other hardware timer will be used to pulse an IR emitter at 38KHz.)
+
+With PWM, we vary the amount of time an LED is on versus how long it is off.
+We repeatedly turn an LED on and off very quickly (so quickly you can't see it
+blink).  In this firmware, I keep the PWM period to less than 0.01 seconds
+(faster than 100Hz) so there is no perceieved flicker (though it is interesting
+to wave the unit back and forth while it is running, and you can actually see
+the PWM pusle widths widen and shrink over time).
 */
 
+
+/*
+A very brief tutorial about binary numbers, bits, bytes, and regsiters:
+----------------------------------------------------------------------
+Microcontrollers have some special memory locations that are called "registers".
+Registers control the hardware in the microcontroller.  For example, the DDRB register
+for the ATtiny25 controls which of the pins on the microcontroller are inputs and outputs,
+and the TCCR0B register controls some aspects of how the internal hardware Timer 0 will
+function.  For the ATtiny25, registers are all 8-bits.
+
+In the datasheet for the AVR microcontrollers, Atmel (who makes them) uses a somewhat
+confusing convention for describing bits in an 8-bit register.  For example, TCCR0B is
+the Timer/Counter Control Register B for Timer 0 (there is also a Register A, and there
+is also a TCCR1 register, but since there is only one register for Timer 1, there is no
+A and B).  Within TCCR0B there are 8 bits, defined like this:
+   FOC0A   FOC0B   --   --   WGM02   CS02   CS01   CS00
+There are three bits that start with "CS0":  CS02, CS01, CS00.  To refer to all three
+of these in the same sentence, Atmel will refer to them as "CS02:0", which means CS0
+bit 2 through CS0 bit 0.  Pretty messed up, but that's what we need to live with.
+(And, by the way, these bits are "Clock Select" bits, which tell the microcontroller
+how to select the clock, which is the heart-beat that controls the speed at which the
+Timer 0 runs.)
+The dashes mean that bit 4 and bit 5 are not used.
+I won't define the other bits here.
+
+You will see the above definitions in the firmware and comments, below.  For example,
+in the comments in the main program, under the statement where we are setting up the
+TCCR0B register for Timer 0, you will see:
+     // CS02:00=001 for divide by 1 prescaler (this starts Timer0)
+This means that CS0 bit 2 is 0, CS0 bit 1 is 0, and CS0 bit 0 is 1 (or stated another
+way, the three CS0 bits are set to 001).
+
+The datasheet describes in great depth all of the registers and functionality of the
+ATtiny25 microcontroller.  I downloaded my copy of the datasheet from here:
+http://www.atmel.com/dyn/resources/prod_documents/doc2586.pdf
+But if that link is dead by the time you read this, just do a search for
+     atmel attiny25 datasheet
+and you'll come up with the latest version.
+*/
 
 /*
 Parts list for this RGB Light project:
@@ -172,7 +71,7 @@ Parts list for this RGB Light project:
 1   CR2032 coin-cell battery
 1   CR2032 battery holder
 1   small slide switch (for on-off)
-1   RGB LED (common cathode)
+1   RGB LED (common anode)
 2   47 ohm resistors
 1   1k ohm resistor
 1   0.1 uF capacitor
@@ -184,14 +83,14 @@ Parts list for this RGB Light project:
 /*
 The hardware for this project is very simple:
     ATtiny25 has 8 pins:
-       pin 1 prg5 RST - (connects to programming port pin 5)
-       pin 2 	  PB3 - connects to nothing
-       pin 3      OC1B - Blue lead of RGB LED (cathode -- through a 47 ohm current limiting resistor)
-       pin 4      ground - (connects to ground of the IR detector)
-       pin 5 prg4 OC0A - (also connects to programming port pin 4)
-       pin 6 prg1 OC1A - Red lead of RGB LED (cathode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
-       pin 7 prg3 PB2 - Green lead of RGB LED (cathode) (also connects to programming port pin 3)
-       pin 8      +3v (connects to common anode lead of RGB LED, and anode of IR emitter, and power pin of IR detector)
+       pin 1  RST - connects to programming port pin 5
+       pin 2  PB3 - connects to the output of the IR detector (pin 1 of the detector)
+       pin 3  OC1B - Blue lead of RGB LED (cathode -- through a 47 ohm current limiting resistor)
+       pin 4  ground (connects to ground of the IR detector)
+       pin 5  OC0A -  IR emitter (cathode -- through a 1k ohm current limiting resistor) (also connects to programming port pin 4)
+       pin 6  OC1A - Red lead of RGB LED (cathode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
+       pin 7  PB2 - Green lead of RGB LED (cathode) (also connects to programming port pin 3)
+       pin 8  +3v (connects to common anode lead of RGB LED, and anode of IR emitter, and power pin of IR detector)
 
     The 6-pin programming header (used only if you want to re-program the ATtiny25)
        also needs to have its pin 2 connected to +3v,
@@ -207,64 +106,15 @@ The hardware for this project is very simple:
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
 
-// this global variable is normally 0, but when the IR detector sees IR,
-//   its output brings PB3 Low.  That causes an interrupt, which sets Start_Over = 1.
-int Start_Over = 0;  // For Dan: this will always remain 0
-
-
-
-// This is an interrupt routine that will be called whenever the IR detector sees IR.
-//   When the IR detector sees IR, its output pin (connected to PB3) goes Low,
-//     which causes a PCINT0 interrupt (set up for a logic change for PB3).
-//   The only thing this interrupt routine does is set Start_Over to 1.
-//     This will be seen in the main routine, which will start the firmware over from the beginning.
-ISR(PCINT0_vect) {
-  Start_Over = 0;  // For Dan: this ISR now does nothing
-}
-
-
-
-/*
-The C compiler creates code that will transfer all constants into RAM when the microcontroller
-resets.  Since this firmware has a table (lightTab) that is too large to transfer into RAM
-(and since we don't need it in RAM) the C compiler needs to be told to keep it in program
-memory space.  This is accomplished by the macro PROGMEM (this is used, below, in the
-definition for the lightTab).  Since the C compiler assumes that constants are in RAM, rather
-than in program memory, when accessing the lightTab, we need to use the pgm_read_byte() macro,
-and we need to use the lightTab as an address, i.e., precede it with "&".  For example, to
-access lightTab[3].red, which is a byte, this is how to do it:
-     pgm_read_byte( &lightTab[3].red );
-And to access lightTab[3].fadeTime, which is a word, this is how to do it:
-     pgm_read_word( &lightTab[3].fadeTime );
-*/
-
 
 
 /*
 The following Light Table consists of any number of rgbElements that will fit into the
 2k flash ROM of the ATtiny25 microcontroller.
-Each rgbElement consists of:
-     fadeTime -- how long to take to fade from previous values of RGB
-                   to the ones specified in this rgbElement
-                   (0 or between 1,000 and 65,535)
-     holdTime -- how long to keep the RGB values once they are faded in
-                   (0 or between 1,000 and 65,535)
-     Red      -- brightness value for Red   (between 0 to 255)
-     Green    -- brightness value for Green (between 0 to 255)
-     Blue     -- brightness value for Blue  (between 0 to 255)
-Both of the time values, fadeTime and holdTime, are expressed as the number of 400
-microseconds -- for example, 2 seconds would be entered as 5000.
-To signify the last rgbElement in the lightTab, its fadeTime and hold time must both
-be 0 (all other values of this last rgbElement are ignored).
+NOTE:  I measured the time, and each fadeTime and holdTime is actually
+          550 microseconds
+       instead of 400 microseconds, as calculated.
 
-NOTE:  I measured the time, and each fadeTime and holdTime is actually 550
-microseconds instead of 400 microseconds, as calculated.
-
-The values for fadeTime and holdTime must either be 0, or between 1,000 and 65,535
-(i.e., 0, or between 0.4 sec and 26.2 sec).
-*/
-
-/*
   The Light Sequences and the notions of fadeTime and holdTime
   are taken from Pete Griffiths, downloaded from:
   http://www.petesworld.demon.co.uk/homebrew/PIC/rgb/index.htm
@@ -283,133 +133,136 @@ The values for fadeTime and holdTime must either be 0, or between 1,000 and 65,5
 */
 
 
-// table of Light Sequences
 struct rgbElement {
-  int fadeTime;            // how long to fade from previous values of RGB to the ones specified in this rgbElement (0 to 65,535)
-  int holdTime;            // how long to keep the RGB values once they are faded in (0 or 1000 to 65,535)
-  unsigned char red;       // brightness value for Red LED (0 to 255)
-  unsigned char green;     // brightness value for Green LED (0 to 255)
-  unsigned char blue;      // brightness value for Blue LED (0 to 255)
+  int fadeTime;       
+  int holdTime;       
+  unsigned char red;  
+  unsigned char green;
+  unsigned char blue; 
 } const lightTab[] PROGMEM = {
-  {     0,   500, 255,   0,   0 },
-  {   500,     0,   0,   0,   0 },
-  {     0,   500,   0, 255,   0 },
-  {   500,     0,   0,   0,   0 },
-  {     0,   500,   0,   0, 255 },
-  {   500,     0,   0,   0,   0 },
-  {  2500,  2500, 255,   0,   0 },
-  {  2500,  2500,   0, 255,   0 },
-  {  2500,  2500,   0,   0, 255 },
-  {  2500,  2500, 155,  64,   0 },
-  {  2500,  2500,  64, 255,  64 },
-  {  2500,  2500,   0,  64, 255 },
-  {  2500,  2500,  64,   0,  64 },
-  {     0,  1500, 155,   0,   0 },
-  {     0,  1500,   0, 255,   0 },
-  {     0,  1500,   0,   0, 255 },
-  {     0,  1500, 140,   0, 240 },
-  {     0,  1500, 155, 155,   0 },
-  {     0,  1500, 155, 255, 255 },
-  {     0,  1500, 128, 128, 128 },
-  {     0,  1500,  48,  48,  58 },
-  {     0,  1500,   0,   0,   0 },
-  {  2500,  2500, 155,   0,   0 },
-  {  2500,  2500, 155, 255,   0 },
-  {  2500,  2500,   0, 255,   0 },
-  {  2500,  2500,   0, 255, 255 },
-  {  2500,  2500,   0,   0, 255 },
-  {  2500,  2500, 155,   0, 255 },
-  {  2500,     0,   0,   0,   0 },
-  {  2500,  2500, 155,   0,   0 },
-  {  2500,  2500, 155, 255,   0 },
-  {  2500,  2500,   0, 255,   0 },
-  {  2500,  2500,   0, 255, 255 },
-  {  2500,  2500,   0,   0, 255 },
-  {  2500,  2500, 155,   0, 255 },
-  {  2500,     0,   0,   0,   0 },
-  {  2500,  2500, 154,  32,   0 },
-  {  2500,  2500, 154, 128,   0 },
-  {  2500,  2500, 154, 240,   0 },
-  {  2500,  2500, 128, 240,   0 },
-  {     0,  2500,   0,   0,   0 },
-  {  2500,  2500,   0,  16, 255 },
-  {  2500,  2500,   0, 128, 255 },
-  {  2500,  2500,   0, 240, 128 },
-  {  2500,  2500,  16,  16, 240 },
-  {  2500,  2500, 140,  16, 240 },
-  {  2500,  2500,  64,   0, 250 },
-  {     0,  2500,  10,  10,  10 },
-  {     0,  2500,   0,   0,   0 },
-  {  2500,  2500, 140,   0, 240 },
-  {  2500,  2500,  32,   0, 240 },
-  {  2500,  2500, 128,   0, 128 },
-  {  2500,  2500, 140,   0,  32 },
-  {  2500,     0,   0,   0,  10 },
-  {  2500,     0,   0,   0,   0 },
-  {  1000,  1000,   0,   0,   0 },
-  {  1000,  1000,  32,   0,   0 },
-  {  1000,  1000,  64,   0,   0 },
-  {     0,  1000,  96,   0,   0 },
-  {  1000,     0, 128,   0,   0 },
-  {  1000,     0, 160,  32,   0 },
-  {  1000,     0, 192,  64,   0 },
-  {  1000,     0, 124,  96,   0 },
-  {     0,  1000, 155, 128,   0 },
-  {  1000,  1000,   0, 160,   0 },
-  {     0,  1000,   0, 192,   0 },
-  {  1000,  1000,   0, 224,  32 },
-  {  1000,     0,   0, 255,  64 },
-  {  1000,     0,   0,   0,  96 },
-  {  1000,     0,   0,   0, 128 },
-  {  1000,     0,   0,   0, 160 },
-  {  1000,     0,   0,   0, 192 },
-  {  1000,     0,   0,   0, 224 },
-  {  1000,  1000,   0,   0, 255 },
-  {  1000,     0,   0,   0,   0 },
-  {     0,  1000,   0,   0, 255 },
-  {  1000,  1000,  32,   0,   0 },
-  {  1000,  1000,  96,   0,   0 },
-  {  1000,  1000, 160,   0,   0 },
-  {  1000,     0, 255,   0,   0 },
-  {  1000,  1000,   0,  96,   0 },
-  {  1000,  1000,   0, 160,  32 },
-  {  1000,  1000,   0, 224,  64 },
-  {  1000,  1000,   0, 255,  96 },
-  {  1000,  1000,   0,   0, 128 },
-  {  1000,  1000,   0,   0, 160 },
-  {     0,  1000,   0,  32, 192 },
-  {     0,  1000,   0,  64, 224 },
-  {     0,  1000,   0,  96, 225 },
-  {     0,  1000,   0, 128,   0 },
-  {     0,  1000,   0, 160,   0 },
-  {     0,  1000,   0, 192,  32 },
-  {     0,  1000,   0, 224,  64 },
-  {     0,  1000,   0, 255,  96 },
-  {     0,  1000,   0,   0, 255 },
-  {     0,  1000,   0,   0,   0 },
-  {     0,     0,   0,   0,   0 }
-};
-
+  {     0,   3000,   0,   0,   0 },
+  {     0,   3000, 255,   0,   0 },
+  {     0,   3000,   0, 255,   0 },
+  {     0,   3000,   0,   0, 255 },
+  {     0,   3000,   0, 255, 255 },
+  {     0,   3000, 255,   0, 255 },
+  {     0,   3000, 255, 255,   0 },
+  {     0,   3000, 255, 255, 255 },
+  {     0,      0,   0,   0,   0 }
+  };
+//  {   500,     0,   0,   0,   0 },
+//  {     0,   500,   0, 255,   0 },
+//  {   500,     0,   0,   0,   0 },
+//  {     0,   500,   0,   0, 255 },
+//  {   500,     0,   0,   0,   0 },
+//  {  2500,  2500, 255,   0,   0 },
+//  {  2500,  2500,   0, 255,   0 },
+//  {  2500,  2500,   0,   0, 255 },
+//  {  2500,  2500, 155,  64,   0 },
+//  {  2500,  2500,  64, 255,  64 },
+//  {  2500,  2500,   0,  64, 255 },
+//  {  2500,  2500,  64,   0,  64 },
+//  {     0,  1500, 155,   0,   0 },
+//  {     0,  1500,   0, 255,   0 },
+//  {     0,  1500,   0,   0, 255 },
+//  {     0,  1500, 140,   0, 240 },
+//  {     0,  1500, 155, 155,   0 },
+//  {     0,  1500, 155, 255, 255 },
+//  {     0,  1500, 128, 128, 128 },
+//  {     0,  1500,  48,  48,  58 },
+//  {     0,  1500,   0,   0,   0 },
+//  {  2500,  2500, 155,   0,   0 },
+//  {  2500,  2500, 155, 255,   0 },
+//  {  2500,  2500,   0, 255,   0 },
+//  {  2500,  2500,   0, 255, 255 },
+//  {  2500,  2500,   0,   0, 255 },
+//  {  2500,  2500, 155,   0, 255 },
+//  {  2500,     0,   0,   0,   0 },
+//  {  2500,  2500, 155,   0,   0 },
+//  {  2500,  2500, 155, 255,   0 },
+//  {  2500,  2500,   0, 255,   0 },
+//  {  2500,  2500,   0, 255, 255 },
+//  {  2500,  2500,   0,   0, 255 },
+//  {  2500,  2500, 155,   0, 255 },
+//  {  2500,     0,   0,   0,   0 },
+//  {  2500,  2500, 154,  32,   0 },
+//  {  2500,  2500, 154, 128,   0 },
+//  {  2500,  2500, 154, 240,   0 },
+//  {  2500,  2500, 128, 240,   0 },
+//  {     0,  2500,   0,   0,   0 },
+//  {  2500,  2500,   0,  16, 255 },
+//  {  2500,  2500,   0, 128, 255 },
+//  {  2500,  2500,   0, 240, 128 },
+//  {  2500,  2500,  16,  16, 240 },
+//  {  2500,  2500, 140,  16, 240 },
+//  {  2500,  2500,  64,   0, 250 },
+//  {     0,  2500,  10,  10,  10 },
+//  {     0,  2500,   0,   0,   0 },
+//  {  2500,  2500, 140,   0, 240 },
+//  {  2500,  2500,  32,   0, 240 },
+//  {  2500,  2500, 128,   0, 128 },
+//  {  2500,  2500, 140,   0,  32 },
+//  {  2500,     0,   0,   0,  10 },
+//  {  2500,     0,   0,   0,   0 },
+//  {  1000,  1000,   0,   0,   0 },
+//  {  1000,  1000,  32,   0,   0 },
+//  {  1000,  1000,  64,   0,   0 },
+//  {     0,  1000,  96,   0,   0 },
+//  {  1000,     0, 128,   0,   0 },
+//  {  1000,     0, 160,  32,   0 },
+//  {  1000,     0, 192,  64,   0 },
+//  {  1000,     0, 124,  96,   0 },
+//  {     0,  1000, 155, 128,   0 },
+//  {  1000,  1000,   0, 160,   0 },
+//  {     0,  1000,   0, 192,   0 },
+//  {  1000,  1000,   0, 224,  32 },
+//  {  1000,     0,   0, 255,  64 },
+//  {  1000,     0,   0,   0,  96 },
+//  {  1000,     0,   0,   0, 128 },
+//  {  1000,     0,   0,   0, 160 },
+//  {  1000,     0,   0,   0, 192 },
+//  {  1000,     0,   0,   0, 224 },
+//  {  1000,  1000,   0,   0, 255 },
+//  {  1000,     0,   0,   0,   0 },
+//  {     0,  1000,   0,   0, 255 },
+//  {  1000,  1000,  32,   0,   0 },
+//  {  1000,  1000,  96,   0,   0 },
+//  {  1000,  1000, 160,   0,   0 },
+//  {  1000,     0, 255,   0,   0 },
+//  {  1000,  1000,   0,  96,   0 },
+//  {  1000,  1000,   0, 160,  32 },
+//  {  1000,  1000,   0, 224,  64 },
+//  {  1000,  1000,   0, 255,  96 },
+//  {  1000,  1000,   0,   0, 128 },
+//  {  1000,  1000,   0,   0, 160 },
+//  {     0,  1000,   0,  32, 192 },
+//  {     0,  1000,   0,  64, 224 },
+//  {     0,  1000,   0,  96, 225 },
+//  {     0,  1000,   0, 128,   0 },
+//  {     0,  1000,   0, 160,   0 },
+//  {     0,  1000,   0, 192,  32 },
+//  {     0,  1000,   0, 224,  64 },
+//  {     0,  1000,   0, 255,  96 },
+//  {     0,  1000,   0,   0, 255 },
+//  {     0,  1000,   0,   0,   0 },
+//  {     0,     0,   0,   0,   0 }
+//};
+//
 
 
 // This function delays the specified number of 10 microseconds
 void delay_ten_us(unsigned long int us) {
   unsigned long int count;
-  // this value was determined by trial and error
-  const unsigned long int DelayCount=6;
+  const unsigned long int DelayCount=6;  // this value was determined by trial and error
 
-  /* Toggling PB5 is done here to force the compiler to do this loop,
-   * rather than optimize it away NOTE:  Below you will see: "0b00100000".
-   * This is an 8-bit binary number with all bits set to 0 except for the
-   * the 6th one from the right.  Since bits in binary numbers are labeled
-   * starting from 0, the bit in this binary number that is set to 1 is
-   * called PB5, which is the one unsed PORTB pin, which is why we can use
-   * it here (to fool the optimizing compiler to not optimize away this
-   * delay loop). */
   while (us != 0) {
-    for (count=0; count <= DelayCount; count++) {
-		PINB |= 0b00100000;
-	}
+    // Toggling PB5 is done here to force the compiler to do this loop, rather than optimize it away
+    //   NOTE:  Below you will see: "0b00100000".
+    //   This is an 8-bit binary number with all bits set to 0 except for the the 6th one from the right.
+    //   Since bits in binary numbers are labeled starting from 0, the bit in this binary number that is set to 1
+    //     is called PB5, which is the one unsed PORTB pin, which is why we can use it here
+    //     (to fool the optimizing compiler to not optimize away this delay loop).
+    for (count=0; count <= DelayCount; count++) {PINB |= 0b00100000;};
     us--;
   }
 }
@@ -487,18 +340,15 @@ void pulseIR(void) {
 
 
 
-// This function sends one rgbElement of lightTab to the LEDs, given index to
-// the codeElement in lightTab If both fadeTime = 0 and holdTime = 0 that
-// signifies the last rgbElement of the lightTab
 void sendrgbElement( int index ) {
   int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
   int HoldTime = pgm_read_word(&lightTab[index].holdTime);
-  unsigned char Red = pgm_read_byte(&lightTab[index].red);
+  unsigned char Red = 255-pgm_read_byte(&lightTab[index].red);
   unsigned char Green = pgm_read_byte(&lightTab[index].green);
-  unsigned char Blue = pgm_read_byte(&lightTab[index].blue);
+  unsigned char Blue = 255-pgm_read_byte(&lightTab[index].blue);
 
-  // get previous RGB brightness values from lightTab (these values are set to
-  // 0 if index to lightTab = 0)
+  // get previous RGB brightness values from lightTab
+  //   (these values are set to 0 if index to lightTab = 0)
   unsigned char redPrev = 0;    // keep track of previous Red brightness value
   unsigned char greenPrev = 0;  // keep track of previous Green brightness value
   unsigned char bluePrev = 0;   // keep track of previous Blue brightness value
@@ -508,9 +358,9 @@ void sendrgbElement( int index ) {
     bluePrev = pgm_read_byte(&lightTab[index-1].blue);
   }
 
-  // set color timing values everytime the fadeCounter reaches this timing
-  // value in the fade loop we will update the color value for the color
-  // (default value of 0 for no updating)
+  // set color timing values
+  //   everytime the fadeCounter reaches this timing value in the fade loop
+  //   we will update the color value for the color (default value of 0 for no updating)
   int redTime = 0;
   int greenTime = 0;
   int blueTime = 0;
@@ -586,8 +436,6 @@ void sendrgbElement( int index ) {
     pulseGreen(greenTemp); // one manual PWM pulse on the Green LED on PB2 (pin 7) for a period of 400 microseconds
     OCR1A = redTemp;       // update PWM for Red LED on OC1A (pin 6)
     OCR1B = blueTemp;      // update PWM for Blue LED on OC1B (pin 3)
-//    pulseIR();
-    if ( Start_Over ) return;  // if the IR detector saw IR, then we should reset and start over (Start_Over gets set to 1 in the interrupt routine if the IR detector saw IR)
   }
   OCR1A = Red;    // leave Timer1 PWM at final brightness value for Red (in case there were rounding errors in above math)
   OCR1B = Blue;   // leave Timer1 PWM at final brightness value for Blue (in case there were rounding errors in above math)
@@ -596,17 +444,12 @@ void sendrgbElement( int index ) {
   //   hold all LEDs at current values for HoldTime
   for (int holdCounter=0; holdCounter<HoldTime; holdCounter++) {
     pulseGreen(greenTemp); // one manual PWM pulse on the Green LED on PB2 (pin 7) for a period of 400 microseconds
-						   // the Blue and Red LED will continue to pulse
-						   // automatically from the hardware Timer1
-//    pulseIR();
-    if ( Start_Over ) return;
+                           // the Red LED will continue to pulse automatically from the hardware Timer1
+                           // the Blue LED will continue to pulse automatically from the hardware Timer1
   }
 }
 
-
-
-int main(void) {
-  start_over:
+int initialize(void) {
   // disable the Watch Dog Timer (since we won't be using it, this will save battery power)
   MCUSR = 0b00000000;   // first step:   WDRF=0 (Watch Dog Reset Flag)
   WDTCR = 0b00011000;   // second step:  WDCE=1 and WDE=1 (Watch Dog Change Enable and Watch Dog Enable)
@@ -624,9 +467,6 @@ int main(void) {
                         //   PB1 (Red LED) is output
                         //   PB0 (IR LED) is output -- ignored for Dan
   PORTB = 0x00;         // For Dan: inverse to account for common-cathode RGB LED -- all PORTB output pins High (all LEDs off) -- (if we set an input pin High it activates a pull-up resistor, which we don't need, but don't care about either)
-  // DEBUG -- make Green LED blink
-  while (1) {
-  }
 
   // set up PB3 so that a logic change causes an interrupt (this will happen when the IR detector goes from seeing IR to not seeing IR, or from not seeing IR to seeing IR)
   // For Dan: no interrupts
@@ -634,16 +474,7 @@ int main(void) {
   //PCMSK = 0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
   //sei();              // For Dan: interupts are no longer enabled -- enable microcontroller interrupts
 
-  // DEBUG -- make Green LED blink
-  while (1) {
-     PORTB |= 0b00000100;  // turn on Green LED at PB2 for 4 * (255 - Green value) -- (by bringing this pin High)
-     delay_x_us( 1000000 );
-     PORTB &= 0b11111011;  // turn off Green LED at PB2 (pin 7) for 4 * Green value -- (by bringing this pin Low)
-     delay_x_us( 1000000 );
-  }
-
   // this global var gets set to 1 in the interrupt service routine if the IR detector sees IR
-  Start_Over = 0;
 
 
 
@@ -693,26 +524,10 @@ int main(void) {
   // Since we are only using hardware timers to drive the Red and Blue LEDs with PWM
   //   we will pulse the Green LED manually with the firmware (using the pulseGreen() function, which is called by the sendrgbElement() function)
 
-  // This loop goes through the lightTab, displaying each rgbElement in the table
-  //   the loop knows that the last rgbElement has been displayed
-  //   when it sees an rgbElement from lightTab that has both fadeTime=0 and holdTime=0
-  // This loop also starts the color sequence over from the beginning of lightTab if Start_Over is set
-  //   (which happens when IR was detected by the IR detector)
-  int index = 0;  // this points to the next rgbElement in the lightTab (initially pointing to the first rgbElement)
-  // send the entire 1.7-minute sequence 18 times so that it lasts about 1/2 hour.
-  // Actually, I measured the time, and the sequence lasts 2.33 minutes, so 13 times gives about 1/2 hour.
-  for (int count=0; count<180; count++) {
-    // send all rgbElements to LEDs (when both fadeTime = 0 and holdTime = 0 it signifies the last rgbElement in lightTab)
-    do {
-      sendrgbElement(index);        // send one rgbElement to LEDs
-      index++;                      // increment to point to next rgbElement in lightTab
-      if ( Start_Over ) break;      // if the IR detector saw IR, then we should reset and start over
-    } while ( !( (pgm_read_word(&lightTab[index].fadeTime) == 0 ) && (pgm_read_word(&lightTab[index].holdTime) == 0 ) ) );
-    if ( Start_Over ) break;      // if the IR detector saw IR, then we should reset and start over
-    index = 0;
-  }
-  if ( Start_Over ) goto start_over;    // if the IR detector saw IR, then we should reset and start over
 
+}
+
+int teardown(void) {
   // Shut down everything and put the CPU to sleep
   cli();                 // disable microcontroller interrupts
   delay_ten_us(10000);   // wait .1 second
@@ -726,4 +541,21 @@ int main(void) {
   MCUCR |= 0b00100000;   // SE=1 (bit 5)
   MCUCR |= 0b00010000;   // SM1:0=10 to enable Power Down Sleep Mode (bits 4, 3)
   sleep_cpu();           // put CPU into Power Down Sleep Mode
+}
+
+int main(void) {
+  initialize();
+
+  int index = 0;
+  // Actually, I measured the time, and the sequence lasts 2.33 minutes, so 13 times gives about 1/2 hour.
+  for (int count=0; count<180; count++) {
+    // send all rgbElements to LEDs (when both fadeTime = 0 and holdTime = 0 it signifies the last rgbElement in lightTab)
+    do {
+      sendrgbElement(index);
+      index++;
+    } while (!((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
+    index = 0;
+  }
+
+  teardown();
 }
