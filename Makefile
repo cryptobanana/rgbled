@@ -21,10 +21,11 @@ burn-fuse:
 program-%:
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)$<
 
+# create a .hex file
+FORMAT = ihex
 
-FORMAT = ihex 		# create a .hex file
-
-OPT = s			# assembly-level optimization
+# assembly-level optimization
+OPT = s
 
 # Optional compiler flags.
 #  -g:        generate debugging information (for GDB, or for COFF conversion)
