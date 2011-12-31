@@ -1,61 +1,20 @@
 /*
-RGB Wave
-Firmware
+RGB Wave Firmware
 for use with ATtiny25
 AS220
 Mitch Altman
+Dan Levin
 09-Mar-09 -- RBG instead of RGB
 21-Dec-11 -- hacked for Dan's RGB LED modules
 
 Distributed under Creative Commons 3.0 -- Attib & Share Alike
-*/
 
-/*
-A very brief tutorial about regsiters:
-----------------------------------------------------------------------
-Microcontrollers have some special memory locations that are called "registers".
-Registers control the hardware in the microcontroller.  For example, the DDRB register
-for the ATtiny25 controls which of the pins on the microcontroller are inputs and outputs,
-and the TCCR0B register controls some aspects of how the internal hardware Timer 0 will
-function.  For the ATtiny25, registers are all 8-bits.
-
-In the datasheet for the AVR microcontrollers, Atmel (who makes them) uses a somewhat
-confusing convention for describing bits in an 8-bit register.  For example, TCCR0B is
-the Timer/Counter Control Register B for Timer 0 (there is also a Register A, and there
-is also a TCCR1 register, but since there is only one register for Timer 1, there is no
-A and B).  Within TCCR0B there are 8 bits, defined like this:
-   FOC0A   FOC0B   --   --   WGM02   CS02   CS01   CS00
-There are three bits that start with "CS0":  CS02, CS01, CS00.  To refer to all three
-of these in the same sentence, Atmel will refer to them as "CS02:0", which means CS0
-bit 2 through CS0 bit 0.  Pretty messed up, but that's what we need to live with.
-(And, by the way, these bits are "Clock Select" bits, which tell the microcontroller
-how to select the clock, which is the heart-beat that controls the speed at which the
-Timer 0 runs.)
-The dashes mean that bit 4 and bit 5 are not used.
-I won't define the other bits here.
-
-You will see the above definitions in the firmware and comments, below.  For example,
-in the comments in the main program, under the statement where we are setting up the
-TCCR0B register for Timer 0, you will see:
-     // CS02:00=001 for divide by 1 prescaler (this starts Timer0)
-This means that CS0 bit 2 is 0, CS0 bit 1 is 0, and CS0 bit 0 is 1 (or stated another
-way, the three CS0 bits are set to 001).
-
-The datasheet describes in great depth all of the registers and functionality of the
-ATtiny25 microcontroller.  I downloaded my copy of the datasheet from here:
-http://www.atmel.com/dyn/resources/prod_documents/doc2586.pdf
-But if that link is dead by the time you read this, just do a search for
-     atmel attiny25 datasheet
-and you'll come up with the latest version.
-*/
-
-/*
 Parts list for this RGB Light project:
 1   ATtiny25
 1   CR2032 coin-cell battery
 1   CR2032 battery holder
 1   small slide switch (for on-off)
-1   RGB LED (common anode)
+1   RGB LED (common cathode)
 2   47 ohm resistors
 1   1k ohm resistor
 1   0.1 uF capacitor
@@ -71,16 +30,13 @@ The hardware for this project is very simple:
        pin 2  PB3 - connects to the output of the IR detector (pin 1 of the detector)
        pin 3  OC1B - Blue lead of RGB LED 
 	   			(anode -- through a 47 ohm current limiting resistor)
-       pin 4  ground 
+       pin 4  ground  (pin programming pin 6)
        pin 5  OC0A -  Green lead of RGB LED 
 	   			(anode -- also connects to programming port pin 4)
        pin 6  OC1A - Red lead of RGB LED 
 	   			(anode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
        pin 7  PB2 - programming port pin 3
-       pin 8  +3v 
-
-	The 6-pin programming header needs to have its pin 2 connected to +3v, and
-	its pin 6 connected to ground.
+       pin 8  +3v (programming pin 2) 
 
     This firmware requires that the clock frequency of the ATtiny
        is the default that it is shipped with:  8.0MHz
@@ -97,9 +53,6 @@ The hardware for this project is very simple:
 /*
 The following Light Table consists of any number of rgbElements that will fit into the
 2k flash ROM of the ATtiny25 microcontroller.
-NOTE:  I measured the time, and each fadeTime and holdTime is actually
-          550 microseconds
-       instead of 400 microseconds, as calculated.
 
   The Light Sequences and the notions of fadeTime and holdTime
   are taken from Pete Griffiths, downloaded from:
@@ -120,6 +73,7 @@ NOTE:  I measured the time, and each fadeTime and holdTime is actually
 
 
 struct rgbElement {
+  // Times in ms
   int fadeTime;       
   int holdTime;       
   unsigned char red;  
@@ -248,21 +202,19 @@ void delay_ten_us(unsigned long int us) {
 }
 
 
-
-// This function delays (1.56 microseconds * x) + 2 microseconds
-//   (determined empirically)
-//    e.g.  if x = 1, the delay is (1 * 1.56) + 2 = 5.1 microseconds
-//          if x = 255, the delay is (255 * 1.56) + 2 = 399.8 microseconds
-void delay_x_us(unsigned long int x) {
-  unsigned long int count;
-  const unsigned long int DelayCount=0;  // the shortest delay
-
-  while (x != 0) {
-    for (count=0; count <= DelayCount; count++) {PINB |= 0b00100000;};
-    x--;
-  }
-}
-
+//// This function delays (1.56 microseconds * x) + 2 microseconds
+////   (determined empirically)
+////    e.g.  if x = 1, the delay is (1 * 1.56) + 2 = 5.1 microseconds
+////          if x = 255, the delay is (255 * 1.56) + 2 = 399.8 microseconds
+//void delay_x_us(unsigned long int x) {
+//  unsigned long int count;
+//  const unsigned long int DelayCount=0;  // the shortest delay
+//
+//  while (x != 0) {
+//    for (count=0; count <= DelayCount; count++) {PINB |= 0b00100000;};
+//    x--;
+//  }
+//}
 
 
 void sendrgbElement( int index ) {
@@ -274,9 +226,9 @@ void sendrgbElement( int index ) {
   unsigned char Blue = 255 - pgm_read_byte(&lightTab[index].blue);
 
   // get previous RGB brightness values from lightTab
-  unsigned char redPrev = 0;  
-  unsigned char greenPrev = 0;
-  unsigned char bluePrev = 0; 
+  unsigned char redPrev = 255;
+  unsigned char greenPrev = 255;
+  unsigned char bluePrev = 255;
 
   if (index != 0) {
     redPrev = 255 - pgm_read_byte(&lightTab[index-1].red);
@@ -390,14 +342,13 @@ int initialize(void) {
   // disable all Timer interrupts
   TIMSK = 0x00;         // setting a bit to 0 disables interrupts
   // set up the input and output pins (the ATtiny25 only has PORTB pins)
-  DDRB = 0b00010111;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
-                        //   PB5 (unused) is input
+  DDRB = 0b00010011;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
+                        //   PB5 (unused)
                         //   PB4 (Blue LED) is output
-                        //   PB3 (IR detect) is input -- ignored for Dan
-                        //   PB2 (Blue LED) is output
+                        //   PB3 (unused)
+                        //   PB2 (unused)
                         //   PB1 (Red LED) is output
                         //   PB0 (Green LED) is output
-  PORTB = 0x00;         //   For Dan: inverse to account for common-cathode RGB LED
 
 
 
@@ -411,24 +362,11 @@ int initialize(void) {
   //   OCR1A =  0 (as an initial value -- this value will increase to increase brightness of Red LED)
   //   OCR1B =  0 (as an initial value -- this value will increase to increase brightness of Blue LED)
   //   F = Fclk / (Prescale * (MAX+1) ) = 122Hz
-  // There is nothing too important about driving the Red and Blue LEDs at 122Hz, it is somewhat arbitrary,
-  //   but it is fast enough to make it seem that the Red and Blue LEDs are not flickering.
-  // Later in the firmware, the OCR1A and OCR1B compare register values will change,
+  //   Driving the Red and Blue LEDs at 122Hz is somewhat arbitrary, but it is
+  //   fast enough to make it seem that the Red and Blue LEDs are not
+  //   flickering. Later in the firmware, the OCR1A and OCR1B compare register values will change,
   //   but the period for Timer1 will always remain the same (with F = 122Hz, always) --
-  //   with OCR1A = 0, the portion of the period with the Red LED on is a minimum
-  //     so the Red LED is very dim,
-  //   with OCR1A = 255, the portion of the period with the Red LED on is a maximum
-  //     so the Red LED is very bright.
-  //   with OCR1B = 0, the portion of the period with the Blue LED on is a minimum
-  //     so the Blue LED is very dim,
-  //   with OCR1B = 255, the portion of the period with the Blue LED on is a maximum
-  //     so the Blue LED is very bright.
-  //   the brightness of the Red LED can be any brightness between the min and max
-  //     by varying the value of OCR1A between 0 and 255.
-  //   the brightness of the Blue LED can be any brightness between the min and max
-  //     by varying the value of OCR1B between 0 and 255.
   //
-  // Please see the ATtiny25 datasheet for descriptions of these registers.
   GTCCR = 0b01110000;   // TSM=0 (we are not using synchronization mode)
                         // PWM1B=1 for PWM mode for compare register B
                         // COM1B1:0=11 for inverting PWM on OC1B (Blue LED output pin)
@@ -440,34 +378,19 @@ int initialize(void) {
                         // PWM1A=1 for PWM mode for compare register A
                         // COM1A1:0=11 for inverting PWM on OC1A (Red LED output pin)
                         // CS13:0=1001 for Prescale=256 (this starts Timer 1)
-  OCR1C = 255;   // sets the MAX count for the PWM to 255 (to get PWM frequency of 122Hz)
-  OCR1A = 0;  // start with minimum brightness for Red LED on OC1A (PB1, pin 6)
-  OCR1B = 0;  // start with minimum brightness for Blue LED on OC1B (PB4, pin 3)
 
-//  DDRB |= (1 << 0); // OC0A on PB0
+  // sets the MAX count for the PWM to 255 (to get PWM frequency of 122Hz)
+  OCR1C = 255;
+  OCR1A = 0;
+  OCR1B = 0;
 
+
+  // We will use Timer 0 to fade the Green LED up and down
   TCCR0A |= ((1 << COM0A1) | (1 << COM0A0) // COM0A1 - COM0A0 (Set OC0A on Compare Match, clear OC0A at TOP)
 		 | (1 << WGM01) | (1 << WGM00)); // WGM01 - WGM00 (set fast PWM)
   TCCR0B |= (1 << CS01); // Start timer at Fcpu / 256
+
   OCR0A = 0; // initialize Output Compare Register A to 0
-
-//   for (int i = 0 ; i < 255 ; i++ ) // For loop (Up counter 0 - 255)
-//	    {
-//			 OCR0A = i; // Update Output Compare Register (PWM 0 - 255)
-//			  delay_ten_us(100);
-//			   }
-
-
-//  TCCR0A = 0b11000011;  // COM0A1:0=10 to toggle OC0A on Compare Match
-//                        // COM0B1:0=00 to disconnect OC0B
-//                        // bits 3:2 are unused
-//                        // WGM01:00=11 
-//  TCCR0B = 0b00001010;  // FOC0A=0 (no force compare)
-//                        // F0C0B=0 (no force compare)
-//                        // bits 5:4 are unused
-//                        // WGM2=1 for CTC Mode (WGM01:00=10 in TCCR0A)?
-//                        // CS02:00=001 for divide by 1 prescaler (this starts Timer0)
-//  OCR0A = 0;
 }
 
 int teardown(void) {
@@ -490,8 +413,8 @@ int main(void) {
   initialize();
 
   int index = 0;
-  // Number of times to run through the light array
-  for (int count=0; count<360; count++) {
+  // Run 50 times ~6 minutes = 5 hours then stop
+  for (int count=0; count<50; count++) {
     do {
       sendrgbElement(index);
       index++;
