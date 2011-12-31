@@ -11,23 +11,7 @@ Distributed under Creative Commons 3.0 -- Attib & Share Alike
 */
 
 /*
-We will use one of the two hardware timers that are embedded inside of the ATtiny25,
-set up to control PWM for the Red LED and the Blue LED.  Since there are only two
-timer compare regsiters on the one hardware timer, we will create PWM for the Green LED
-by manually pulsing it in a firmware loop.
-(The other hardware timer will be used to pulse an IR emitter at 38KHz.)
-
-With PWM, we vary the amount of time an LED is on versus how long it is off.
-We repeatedly turn an LED on and off very quickly (so quickly you can't see it
-blink).  In this firmware, I keep the PWM period to less than 0.01 seconds
-(faster than 100Hz) so there is no perceieved flicker (though it is interesting
-to wave the unit back and forth while it is running, and you can actually see
-the PWM pusle widths widen and shrink over time).
-*/
-
-
-/*
-A very brief tutorial about binary numbers, bits, bytes, and regsiters:
+A very brief tutorial about regsiters:
 ----------------------------------------------------------------------
 Microcontrollers have some special memory locations that are called "registers".
 Registers control the hardware in the microcontroller.  For example, the DDRB register
@@ -85,16 +69,18 @@ The hardware for this project is very simple:
     ATtiny25 has 8 pins:
        pin 1  RST - connects to programming port pin 5
        pin 2  PB3 - connects to the output of the IR detector (pin 1 of the detector)
-       pin 3  OC1B - Blue lead of RGB LED (cathode -- through a 47 ohm current limiting resistor)
-       pin 4  ground (connects to ground of the IR detector)
-       pin 5  OC0A -  IR emitter (cathode -- through a 1k ohm current limiting resistor) (also connects to programming port pin 4)
-       pin 6  OC1A - Red lead of RGB LED (cathode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
-       pin 7  PB2 - Green lead of RGB LED (cathode) (also connects to programming port pin 3)
-       pin 8  +3v (connects to common anode lead of RGB LED, and anode of IR emitter, and power pin of IR detector)
+       pin 3  OC1B - Blue lead of RGB LED 
+	   			(anode -- through a 47 ohm current limiting resistor)
+       pin 4  ground 
+       pin 5  OC0A -  Green lead of RGB LED 
+	   			(anode -- also connects to programming port pin 4)
+       pin 6  OC1A - Red lead of RGB LED 
+	   			(anode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
+       pin 7  PB2 - programming port pin 3
+       pin 8  +3v 
 
-    The 6-pin programming header (used only if you want to re-program the ATtiny25)
-       also needs to have its pin 2 connected to +3v,
-       and its pin 6 connected to ground.
+	The 6-pin programming header needs to have its pin 2 connected to +3v, and
+	its pin 6 connected to ground.
 
     This firmware requires that the clock frequency of the ATtiny
        is the default that it is shipped with:  8.0MHz
@@ -278,8 +264,6 @@ void delay_x_us(unsigned long int x) {
   const unsigned long int DelayCount=0;  // the shortest delay
 
   while (x != 0) {
-    // Toggling PB5 is done here to force the compiler to do this loop, rather than optimize it away
-    //   (see NOTE in the comments in the delay_ten_us() function, above)
     for (count=0; count <= DelayCount; count++) {PINB |= 0b00100000;};
     x--;
   }
@@ -287,71 +271,19 @@ void delay_x_us(unsigned long int x) {
 
 
 
-// This function pulses the Green LED on PB2 (pin 7)
-// Since Green LED is not on a PWM pin on a hardware timer, we need to pulse it manually.
-//   We pulse it High for [Green value], and pulse it Low for [255 - Green value].
-//   Since the delay_x_us function delays 1.56x+2 microseconds,
-//     the total period is about 400 microseconds, which is 2500Hz (if we repeat it)
-//     (and that is way fast enough so that we don't perceive the Green LED flicker).
-void pulseGreen(unsigned char greenVal) {
-  PORTB |= 0b00000100;  // turn off Green LED at PB2 for 4 * (255 - Green value) -- (by bringing this pin High)
-  delay_x_us( greenVal );
-  PORTB &= 0b11111011;  // turn on Green LED at PB2 (pin 7) for 4 * Green value -- (by bringing this pin Low)
-  delay_x_us( (255 - greenVal) );
-}
-
-
-
-void pulseIR(void) {
-  // We will use Timer 0 to pulse the IR LED at 38KHz
-  //
-  // We pulse the IR emitter for only 170 microseconds.  We do this to save battery power.
-  //   The minimum number of 38KHz pulses that the IR detector needs to detect IR is 6.
-  //   170 microseconds gives slightly more than 6 periods of 38KHz, which is enough to
-  //   reflect off of your hand and hit the IR detector.
-  //
-  // start up Timer0 in CTC Mode at about 38KHz to drive the IR emitter on output OC0A:
-  //   8-bit Timer0 OC0A (PB0, pin 5) is set up for CTC mode, toggling output on each compare
-  //   Fclk = Clock = 8MHz
-  //   Prescale = 1
-  //   OCR0A = 104
-  //   F = Fclk / (2 * Prescale * (1 + OCR0A) ) = 38KHz
-  //
-  // Please see the ATtiny25 datasheet for descriptions of these registers.
-  // For Dan: do not use IR (timer for IR LED output pin remains off)
-  TCCR0A = 0b01000000;  // COM0A1:0=01 to toggle OC0A on Compare Match
-                        // COM0B1:0=00 to disconnect OC0B
-                        // bits 3:2 are unused
-                        // WGM01:00=10 for CTC Mode (WGM02=0 in TCCR0B)
-  TCCR0B = 0b00000000;  // FOC0A=0 (no force compare)
-                        // F0C0B=0 (no force compare)
-                        // bits 5:4 are unused
-                        // WGM2=0 for CTC Mode (WGM01:00=10 in TCCR0A)
-                        // CS02:00=001 for divide by 1 prescaler (this starts Timer0)
-  OCR0A = 104;  // to output 38,095.2KHz on OC0A (PB0, pin 5)
-
-  // keep the IR going at 38KHz for 170 microseconds (which is slightly more than 6 periods of 38KHz)
-  delay_ten_us(17);   // delay 170 microseconds
-
-  // turn off Timer0 to stop 38KHz pulsing of IR
-  TCCR0B = 0b00000000;  // CS02:CS00=000 to stop Timer0 (turn off IR emitter)
-  TCCR0A = 0b00000000;  // COM0A1:0=00 to disconnect OC0A from PB0 (pin 5)
-}
-
-
-
 void sendrgbElement( int index ) {
   int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
   int HoldTime = pgm_read_word(&lightTab[index].holdTime);
-  unsigned char Red = 255-pgm_read_byte(&lightTab[index].red);
-  unsigned char Green = pgm_read_byte(&lightTab[index].green);
-  unsigned char Blue = 255-pgm_read_byte(&lightTab[index].blue);
+
+  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
+  unsigned char Green = 255 - pgm_read_byte(&lightTab[index].green);
+  unsigned char Blue = 255 - pgm_read_byte(&lightTab[index].blue);
 
   // get previous RGB brightness values from lightTab
-  //   (these values are set to 0 if index to lightTab = 0)
-  unsigned char redPrev = 0;    // keep track of previous Red brightness value
-  unsigned char greenPrev = 0;  // keep track of previous Green brightness value
-  unsigned char bluePrev = 0;   // keep track of previous Blue brightness value
+  unsigned char redPrev = 0;  
+  unsigned char greenPrev = 0;
+  unsigned char bluePrev = 0; 
+
   if (index != 0) {
     redPrev = pgm_read_byte(&lightTab[index-1].red);
     greenPrev = pgm_read_byte(&lightTab[index-1].green);
@@ -360,7 +292,7 @@ void sendrgbElement( int index ) {
 
   // set color timing values
   //   everytime the fadeCounter reaches this timing value in the fade loop
-  //   we will update the color value for the color (default value of 0 for no updating)
+  //   we will update the value for the color (default value of 0 for no updating)
   int redTime = 0;
   int greenTime = 0;
   int blueTime = 0;
@@ -411,9 +343,9 @@ void sendrgbElement( int index ) {
 
   // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the fade loop will not be executed)
   if (FadeTime == 0) {
-    greenTemp = Green; // no need to manually pulse Green LED on PB2 (pin 7) now, since it will be done in the hold loop
     OCR1A = Red;       // update PWM for Red LED on OC1A (pin 6)
     OCR1B = Blue;      // update PWM for Blue LED on OC1B (pin 3)
+    OCR0A = Green;       // update PWM for Red LED on OC0A (pin 0)
   }
 
   // fade loop
@@ -433,19 +365,24 @@ void sendrgbElement( int index ) {
       blueTemp = blueTemp + blueInc;              // increment to next blue value
       blueTime = blueTime + blueTimeInc;          // we'll increment Blue value again when FadeTime reaches new blueTime
     }
-    pulseGreen(greenTemp); // one manual PWM pulse on the Green LED on PB2 (pin 7) for a period of 400 microseconds
-    OCR1A = redTemp;       // update PWM for Red LED on OC1A (pin 6)
-    OCR1B = blueTemp;      // update PWM for Blue LED on OC1B (pin 3)
-  }
-  OCR1A = Red;    // leave Timer1 PWM at final brightness value for Red (in case there were rounding errors in above math)
-  OCR1B = Blue;   // leave Timer1 PWM at final brightness value for Blue (in case there were rounding errors in above math)
 
-  // hold loop
-  //   hold all LEDs at current values for HoldTime
+    OCR1A = redTemp;
+    OCR1B = blueTemp;
+    OCR0A = greenTemp;
+
+	// delay for a period of 400 microseconds
+    delay_x_us(255);
+  }
+
+  // set all LEDs to new brightness values
+  OCR1A = Red;
+  OCR1B = Blue;
+  OCR0A = Green;
+
+  // hold all LEDs at current values
   for (int holdCounter=0; holdCounter<HoldTime; holdCounter++) {
-    pulseGreen(greenTemp); // one manual PWM pulse on the Green LED on PB2 (pin 7) for a period of 400 microseconds
-                           // the Red LED will continue to pulse automatically from the hardware Timer1
-                           // the Blue LED will continue to pulse automatically from the hardware Timer1
+	// delay for a period of 400 microseconds
+	delay_x_us(255);
   }
 }
 
@@ -466,15 +403,7 @@ int initialize(void) {
                         //   PB2 (Green LED) is output
                         //   PB1 (Red LED) is output
                         //   PB0 (IR LED) is output -- ignored for Dan
-  PORTB = 0x00;         // For Dan: inverse to account for common-cathode RGB LED -- all PORTB output pins High (all LEDs off) -- (if we set an input pin High it activates a pull-up resistor, which we don't need, but don't care about either)
-
-  // set up PB3 so that a logic change causes an interrupt (this will happen when the IR detector goes from seeing IR to not seeing IR, or from not seeing IR to seeing IR)
-  // For Dan: no interrupts
-  //GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
-  //PCMSK = 0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
-  //sei();              // For Dan: interupts are no longer enabled -- enable microcontroller interrupts
-
-  // this global var gets set to 1 in the interrupt service routine if the IR detector sees IR
+  PORTB = 0x00;         //   For Dan: inverse to account for common-cathode RGB LED
 
 
 
@@ -521,10 +450,30 @@ int initialize(void) {
   OCR1A = 0;  // start with minimum brightness for Red LED on OC1A (PB1, pin 6)
   OCR1B = 0;  // start with minimum brightness for Blue LED on OC1B (PB4, pin 3)
 
-  // Since we are only using hardware timers to drive the Red and Blue LEDs with PWM
-  //   we will pulse the Green LED manually with the firmware (using the pulseGreen() function, which is called by the sendrgbElement() function)
+  DDRB |= (1 <<   0); // OC0A on PB0
+
+  TCCR0A |= ((1 << COM0A1) | (1 << COM0A0) // COM0A1 - COM0A0 (Set OC0A on Compare Match, clear OC0A at TOP)
+		 | (1 << WGM01) | (1 << WGM00)); // WGM01 - WGM00 (set fast PWM)
+  TCCR0B |= (1 << CS01); // Start timer at Fcpu / 256
+  OCR0A = 0; // initialize Output Compare Register A to 0
+
+//   for (int i = 0 ; i < 255 ; i++ ) // For loop (Up counter 0 - 255)
+//	    {
+//			 OCR0A = i; // Update Output Compare Register (PWM 0 - 255)
+//			  delay_ten_us(100);
+//			   }
 
 
+//  TCCR0A = 0b11000011;  // COM0A1:0=10 to toggle OC0A on Compare Match
+//                        // COM0B1:0=00 to disconnect OC0B
+//                        // bits 3:2 are unused
+//                        // WGM01:00=11 
+//  TCCR0B = 0b00001010;  // FOC0A=0 (no force compare)
+//                        // F0C0B=0 (no force compare)
+//                        // bits 5:4 are unused
+//                        // WGM2=1 for CTC Mode (WGM01:00=10 in TCCR0A)?
+//                        // CS02:00=001 for divide by 1 prescaler (this starts Timer0)
+//  OCR0A = 0;
 }
 
 int teardown(void) {
@@ -547,9 +496,8 @@ int main(void) {
   initialize();
 
   int index = 0;
-  // Actually, I measured the time, and the sequence lasts 2.33 minutes, so 13 times gives about 1/2 hour.
-  for (int count=0; count<180; count++) {
-    // send all rgbElements to LEDs (when both fadeTime = 0 and holdTime = 0 it signifies the last rgbElement in lightTab)
+  // Number of times to run through the light array
+  for (int count=0; count<360; count++) {
     do {
       sendrgbElement(index);
       index++;
