@@ -48,8 +48,12 @@ The hardware for this project is very simple:
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
 
+int Pause = 0;
 
-
+ISR(PCINT0_vect) {
+	if (Pause) Pause = 0;
+	if (! Pause) Pause = 1;
+}
 /*
 The following Light Table consists of any number of rgbElements that will fit into the
 2k flash ROM of the ATtiny25 microcontroller.
@@ -318,6 +322,11 @@ void sendrgbElement( int index ) {
 
 	// delay for a period of 1ms
     delay_ten_us(100);
+
+	while (Pause) {
+		delay_ten_us(100);
+	}
+
   }
 
   // set all LEDs to new brightness values
@@ -329,6 +338,11 @@ void sendrgbElement( int index ) {
   for (int holdCounter=0; holdCounter<HoldTime; holdCounter++) {
 	// delay for a period of 1ms
 	delay_ten_us(100);
+
+	while (Pause) {
+		delay_ten_us(100);
+	}
+
   }
 }
 
@@ -344,13 +358,15 @@ int initialize(void) {
   // set up the input and output pins (the ATtiny25 only has PORTB pins)
   DDRB = 0b00010011;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
                         //   PB5 (unused)
-                        //   PB4 (Blue LED) is output
-                        //   PB3 (unused)
+                        //   PB4 Blue LED is output
+                        //   PB3 Pause interrupt is input
                         //   PB2 (unused)
-                        //   PB1 (Red LED) is output
-                        //   PB0 (Green LED) is output
+                        //   PB1 Red LED is output
+                        //   PB0 Green LED is output
 
-
+  GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
+  PCMSK = 0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
+  sei();                // enable microcontroller interrupts
 
   // We will use Timer 1 to fade the Red and Blue LEDs up and down
   //
