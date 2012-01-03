@@ -12,7 +12,7 @@ build-rgb: rgb.hex
 
 program-rgb: rgb.hex
 
-# this is necessary if you're burning the AVR for the first time...
+# Must be fun before burning the AVR for the first time...
 # sets the proper fuse for 8MHz internal oscillator with no clk div
 burn-fuse:
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -B 250 -u -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m
@@ -186,5 +186,4 @@ clean_list :
 	$(REMOVE) *.o
 
 # Listing of phony targets.
-.PHONY : all begin finish end \
-	clean clean_list program
+.PHONY : all begin finish end clean clean_list program
