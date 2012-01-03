@@ -27,10 +27,10 @@ Parts list for this RGB Light project:
 The hardware for this project is very simple:
     ATtiny25 has 8 pins:
        pin 1  RST - connects to programming port pin 5
-       pin 2  PB3 - connects to the output of the IR detector (pin 1 of the detector)
+       pin 2  PB3 - 
        pin 3  OC1B - Blue lead of RGB LED 
-	   			(anode -- through a 47 ohm current limiting resistor)
-       pin 4  ground  (pin programming pin 6)
+	   			(//anode -- through a 47 ohm current limiting resistor)
+       pin 4  gro//und  (pin programming pin 6)
        pin 5  OC0A -  Green lead of RGB LED 
 	   			(anode -- also connects to programming port pin 4)
        pin 6  OC1A - Red lead of RGB LED 
@@ -38,6 +38,13 @@ The hardware for this project is very simple:
        pin 7  PB2 - programming port pin 3
        pin 8  +3v (programming pin 2) 
 
+	Programmer:
+		pin 1: pin6
+		pin 2: +3v
+		pin 3: pin7
+		pin 4: pin5
+		pin 5: pin1
+		pin 6: ground	
     This firmware requires that the clock frequency of the ATtiny
        is the default that it is shipped with:  8.0MHz
 */
@@ -47,13 +54,31 @@ The hardware for this project is very simple:
 #include <avr/interrupt.h>      // definitions for interrupts
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
+#define TIMESTEP 100
 
 int Pause = 0;
 
 ISR(PCINT0_vect) {
-	if (Pause) Pause = 0;
-	if (! Pause) Pause = 1;
+//	while (!(PORTB & 0b00001000)) {
+//	  delay_ten_us(15000);
+//	}
+//	
+//	switch(Pause) {
+//		case 0:
+//			Pause++;
+//			break;
+//		case 1:
+//			Pause++;
+//			break;
+//		case 2:
+//			Pause++;
+//			break;
+//		case 3:
+//			Pause = 0;
+//			break;
+//	}
 }
+
 /*
 The following Light Table consists of any number of rgbElements that will fit into the
 2k flash ROM of the ATtiny25 microcontroller.
@@ -191,16 +216,12 @@ struct rgbElement {
 // This function delays the specified number of 10 microseconds
 void delay_ten_us(unsigned long int us) {
   unsigned long int count;
-  const unsigned long int DelayCount=6;  // this value was determined by trial and error
+  const unsigned long int DelayCount = 7;  // this value was determined by trial and error
 
-  while (us != 0) {
+  while (us > 0) {
     // Toggling PB5 is done here to force the compiler to do this loop, rather than optimize it away
-    //   NOTE:  Below you will see: "0b00100000".
-    //   This is an 8-bit binary number with all bits set to 0 except for the the 6th one from the right.
-    //   Since bits in binary numbers are labeled starting from 0, the bit in this binary number that is set to 1
-    //     is called PB5, which is the one unsed PORTB pin, which is why we can use it here
-    //     (to fool the optimizing compiler to not optimize away this delay loop).
-    for (count=0; count <= DelayCount; count++) {PINB |= 0b00100000;};
+    //     PB5 is the one unsed PORTB pin, which is why we can use it here
+    for (count=0; count < DelayCount; count++) {PINB |= 0b00100000;};
     us--;
   }
 }
@@ -225,19 +246,21 @@ void sendrgbElement( int index ) {
   int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
   int HoldTime = pgm_read_word(&lightTab[index].holdTime);
 
-  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
-  unsigned char Green = 255 - pgm_read_byte(&lightTab[index].green);
-  unsigned char Blue = 255 - pgm_read_byte(&lightTab[index].blue);
+//  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
+  unsigned char Red =  pgm_read_byte(&lightTab[index].red);
+  unsigned char Green = pgm_read_byte(&lightTab[index].green);
+  unsigned char Blue = pgm_read_byte(&lightTab[index].blue);
 
   // get previous RGB brightness values from lightTab
-  unsigned char redPrev = 255;
-  unsigned char greenPrev = 255;
-  unsigned char bluePrev = 255;
+  unsigned char redPrev = 0;
+  unsigned char greenPrev = 0;
+  unsigned char bluePrev = 0;
 
   if (index != 0) {
-    redPrev = 255 - pgm_read_byte(&lightTab[index-1].red);
-    greenPrev = 255 - pgm_read_byte(&lightTab[index-1].green);
-    bluePrev = 255 - pgm_read_byte(&lightTab[index-1].blue);
+//    redPrev = 255 - pgm_read_byte(&lightTab[index-1].red);
+    redPrev =  pgm_read_byte(&lightTab[index-1].red);
+    greenPrev = pgm_read_byte(&lightTab[index-1].green);
+    bluePrev = pgm_read_byte(&lightTab[index-1].blue);
   }
 
   // set color timing values
@@ -291,6 +314,7 @@ void sendrgbElement( int index ) {
   if (greenDelta < 0) greenInc = -1;
   if (blueDelta < 0) blueInc = -1;
 
+  // UGLY
   // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the fade loop will not be executed)
   if (FadeTime == 0) {
     OCR1A = Red;       // update PWM for Red LED on OC1A (pin 6)
@@ -300,7 +324,6 @@ void sendrgbElement( int index ) {
 
   // fade loop
   //   this loop will independently fade each LED up or down according to all of the above variables
-  //   (it will take a length of time, FadeTime, to accomplish the task)
   //   this loop is not executed if FadeTime = 0 (since 1 is not <= 0, in the "for" loop)
   for (int fadeCounter=1; fadeCounter<=FadeTime; fadeCounter++) {
     if ( fadeCounter == redTime ) {
@@ -321,10 +344,10 @@ void sendrgbElement( int index ) {
     OCR0A = greenTemp;
 
 	// delay for a period of 1ms
-    delay_ten_us(100);
+    delay_ten_us(TIMESTEP);
 
-	while (Pause) {
-		delay_ten_us(100);
+	while (Pause == 2) {
+		delay_ten_us(TIMESTEP);
 	}
 
   }
@@ -337,10 +360,10 @@ void sendrgbElement( int index ) {
   // hold all LEDs at current values
   for (int holdCounter=0; holdCounter<HoldTime; holdCounter++) {
 	// delay for a period of 1ms
-	delay_ten_us(100);
+	delay_ten_us(TIMESTEP);
 
-	while (Pause) {
-		delay_ten_us(100);
+	while (Pause == 2) {
+		delay_ten_us(TIMESTEP);
 	}
 
   }
@@ -363,6 +386,8 @@ int initialize(void) {
                         //   PB2 (unused)
                         //   PB1 Red LED is output
                         //   PB0 Green LED is output
+						//
+  PORTB |= (1 << PB3); 	// Turns on the pullup for PB3
 
   GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
   PCMSK = 0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
