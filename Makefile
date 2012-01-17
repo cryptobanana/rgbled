@@ -2,7 +2,6 @@ MCU = attiny25
 # 8 MHz
 F_CPU = 8000000
 AVRDUDE_PROGRAMMER = usbtiny
-# programmer connected to USB
 AVRDUDE_PORT = usb
 
 
@@ -12,7 +11,7 @@ build-rgb: rgb.hex
 
 program-rgb: rgb.hex
 
-# Must be fun before burning the AVR for the first time...
+# Must be run before burning the AVR for the first time...
 # sets the proper fuse for 8MHz internal oscillator with no clk div
 burn-fuse:
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -B 250 -u -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m
