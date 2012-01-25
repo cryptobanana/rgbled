@@ -63,20 +63,20 @@ ISR(PCINT0_vect) {
 //	  delay_ten_us(15000);
 //	}
 //	
-//	switch(Pause) {
-//		case 0:
-//			Pause++;
-//			break;
-//		case 1:
-//			Pause++;
-//			break;
-//		case 2:
-//			Pause++;
-//			break;
-//		case 3:
-//			Pause = 0;
-//			break;
-//	}
+	switch(Pause) {
+		case 0:
+			Pause++;
+			break;
+		case 1:
+			Pause++;
+			break;
+		case 2:
+			Pause++;
+			break;
+		case 3:
+			Pause = 0;
+			break;
+	}
 }
 
 /*
