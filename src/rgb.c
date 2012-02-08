@@ -55,6 +55,7 @@ The hardware for this project is very simple:
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
 #define TIMESTEP 100
+#define MULTIPLIER 1 //Multiply hold and transition times
 
 int Pause = 0;
 
@@ -243,8 +244,8 @@ void delay_ten_us(unsigned long int us) {
 
 
 void sendrgbElement( int index ) {
-  int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
-  int HoldTime = pgm_read_word(&lightTab[index].holdTime);
+  int FadeTime = MULTIPLIER * pgm_read_word(&lightTab[index].fadeTime);
+  int HoldTime = MULTIPLIER * pgm_read_word(&lightTab[index].holdTime);
 
 //  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
   unsigned char Red =  pgm_read_byte(&lightTab[index].red);
