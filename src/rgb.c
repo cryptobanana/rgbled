@@ -55,7 +55,8 @@ The hardware for this project is very simple:
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
 #define TIMESTEP 100
-#define MULTIPLIER 1 //Multiply hold and transition times
+#define MULTIPLIER 3 //Multiply hold and transition times
+#define NPNTransistor 1 // Set to 1 if NPN Transistor is used, otherwise 0 if PNP is used
 
 int Pause = 0;
 
@@ -104,11 +105,11 @@ The following Light Table consists of any number of rgbElements that will fit in
 
 struct rgbElement {
   // Times in ms
-  int fadeTime;       
-  int holdTime;       
-  unsigned char red;  
+  int fadeTime;
+  int holdTime;
+  unsigned char red;
   unsigned char green;
-  unsigned char blue; 
+  unsigned char blue;
 } const lightTab[] PROGMEM = {
   {     0,    500,   0,   0,   0 },
   {   500,    500, 255,   0,   0 },
@@ -257,12 +258,29 @@ void sendrgbElement( int index ) {
   unsigned char greenPrev = 0;
   unsigned char bluePrev = 0;
 
+  // Flip all brightness values if we're using an NPN Transistor
+  if (NPNTransistor == 1) {
+	redPrev = greenPrev = bluePrev = 255;
+	Red = 255 - Red;
+	Green = 255 - Green;
+	Blue = 255 - Blue;
+  }
+
   if (index != 0) {
 //    redPrev = 255 - pgm_read_byte(&lightTab[index-1].red);
     redPrev =  pgm_read_byte(&lightTab[index-1].red);
     greenPrev = pgm_read_byte(&lightTab[index-1].green);
     bluePrev = pgm_read_byte(&lightTab[index-1].blue);
+
+	  // Flip all brightness values if we're using an NPN Transistor
+	  if (NPNTransistor == 1) {
+		redPrev = 255 - redPrev;
+		greenPrev = 255 - greenPrev;
+		bluePrev = 255 - bluePrev;
+	  }
   }
+
+
 
   // set color timing values
   //   everytime the fadeCounter reaches this timing value in the fade loop
@@ -344,7 +362,7 @@ void sendrgbElement( int index ) {
     OCR1B = blueTemp;
     OCR0A = greenTemp;
 
-	// delay for a period of 1ms
+	// delay for a period of Timestep * 10microseconds
     delay_ten_us(TIMESTEP);
 
 	while (Pause == 2) {
