@@ -14,7 +14,7 @@ program-rgb: rgb.hex
 # Must be run before burning the AVR for the first time...
 # sets the proper fuse for 8MHz internal oscillator with no clk div
 burn-fuse:
-	$(AVRDUDE) $(AVRDUDE_FLAGS) -B 250 -u -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -Y
+	$(AVRDUDE) $(AVRDUDE_FLAGS) -B 250 -u -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -Y 0
 
 # this programs the dependant hex file using our default avrdude flags
 program-%:
