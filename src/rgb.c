@@ -59,10 +59,11 @@ The hardware for this project is very simple:
 #define NPNTransistor 1 // Set to 1 if NPN Transistor is used, otherwise 0 if PNP is used
 
 int Pause = 0;
-int Mode = 0;
-int Multiplier = MULTIPLIER;
+int BrightnessReducer = 1;
+int TimeMultiplier = MULTIPLIER;
 
 ISR(PCINT0_vect) {
+int BrightnessLevel = 0;
    //corresponds to pin2 (PB3)
 	if (PORTB & 0b00000100) {
 		switch(Pause) {
@@ -77,29 +78,19 @@ ISR(PCINT0_vect) {
 				break;
 			case 3:
 				Pause = 0;
-				break;
+				BrightnessReducer *= 2;
+				if (BrightnessReducer > 16){
+					BrightnessReducer = 1;
+				}
+				// Calculate log2 of BrightnessReducer
+				for (int i=1; i <= BrightnessReducer; i*=2){
+					BrightnessLevel++;
+				}
+			break;
 		}
 	}
-	else {
-		Mode = PORTB;
-	}
-	// Corresponds to pin7 (PB2)
-//	else if (PORTB & 0b10000000) {
-//		switch(Mode) {
-//			case 0:
-//				Mode++;
-//				break;
-//			case 1:
-//				Mode++;
-//				break;
-//			case 2:
-//				Mode++;
-//				break;
-//			case 3:
-//				Mode = 0;
-//				break;
-//		}
-//	}
+	//Debugging code to signal the value of Mode with flashes
+	blink_signal(BrightnessLevel);
 }
 
 /*
@@ -141,9 +132,9 @@ struct rgbElement {
   {   500,    500, 255, 255,   0 },
   {   500,   2500, 255, 255, 255 },
   {  2500,      0,   0,   0,   0 },
-  {  7000,   2500, 255,   0,   0 },
-  {  7000,   2500,   0, 255,   0 },
-  {  7000,   2500,   0,   0, 255 },
+  {  5000,   2500, 255,   0,   0 },
+  {  5000,   2500,   0, 255,   0 },
+  {  5000,   2500,   0,   0, 255 },
   {  5000,   2500, 155,  64,   0 },
   {  5000,   2500,  64, 255,  64 },
   {  5000,   2500,   0,  64, 255 },
@@ -163,19 +154,16 @@ struct rgbElement {
   {  2500,   2500,   0, 255, 255 },
   {  2500,   2500,   0,   0, 255 },
   {  2500,   2500, 155,   0, 255 },
-  {  2500,      0,   0,   0,   0 },
   {  2500,   2500, 155,   0,   0 },
   {  2500,   2500, 155, 255,   0 },
   {  2500,   2500,   0, 255,   0 },
   {  2500,   2500,   0, 255, 255 },
   {  2500,   2500,   0,   0, 255 },
   {  2500,   2500, 155,   0, 255 },
-  {  2500,      0,   0,   0,   0 },
   {  2500,   2500, 154,  32,   0 },
   {  2500,   2500, 154, 128,   0 },
   {  2500,   2500, 154, 240,   0 },
   {  2500,   2500, 128, 240,   0 },
-  {  2500,      0,   0,   0,   0 },
   {  2500,   2500,   0,  16, 255 },
   {  2500,   2500,   0, 128, 255 },
   {  2500,   2500,   0, 240, 128 },
@@ -183,58 +171,38 @@ struct rgbElement {
   {  2500,   2500, 140,  16, 240 },
   {  2500,   2500,  64,   0, 250 },
   {  2500,   2500,  10,  10,  10 },
-  {  2500,      0,   0,   0,   0 },
   {  2500,   2500, 140,   0, 240 },
   {  2500,   2500,  32,   0, 240 },
   {  2500,   2500, 128,   0, 128 },
   {  2500,   2500, 140,   0,  32 },
-  {  2500,      0,   0,   0,  10 },
-  {  2500,      0,   0,   0,   0 },
   {  1000,   1000,   0,   0,   0 },
   {  1000,   1000,  32,   0,   0 },
   {  1000,   1000,  64,   0,   0 },
-  {  1000,      0,  96,   0,   0 },
-  {  1000,      0, 128,   0,   0 },
-  {  1000,      0, 160,  32,   0 },
-  {  1000,      0, 192,  64,   0 },
-  {  1000,      0, 124,  96,   0 },
   {  1000,   1000, 155, 128,   0 },
   {  1000,   1000,   0, 160,   0 },
   {  1000,   1000,   0, 192,   0 },
   {  1000,   1000,   0, 224,  32 },
-  {  1000,      0,   0, 255,  64 },
-  {  1000,      0,   0,   0,  96 },
-  {  1000,      0,   0,   0, 128 },
-  {  1000,      0,   0,   0, 160 },
-  {  1000,      0,   0,   0, 192 },
-  {  1000,      0,   0,   0, 224 },
-  {  1000,   1000,   0,   0, 255 },
-  {  1000,      0,   0,   0,   0 },
   {  1000,   1000,   0,   0, 255 },
   {  1000,   1000,  32,   0,   0 },
   {  1000,   1000,  96,   0,   0 },
   {  1000,   1000, 160,   0,   0 },
-  {  1000,      0, 255,   0,   0 },
   {  1000,   1000,   0,  96,   0 },
   {  1000,   1000,   0, 160,  32 },
   {  1000,   1000,   0, 224,  64 },
   {  1000,   1000,   0, 255,  96 },
   {  1000,   1000,   0,   0, 128 },
   {  1000,   1000,   0,   0, 160 },
-  {  1000,   1000,   0,  32, 192 },
-  {  1000,   1000,   0,  64, 224 },
-  {  1000,   1000,   0,  96, 225 },
-  {  1000,   1000,   0, 128,   0 },
-  {  1000,   1000,   0, 160,   0 },
-  {  1000,   1000,   0, 192,  32 },
-  {  1000,   1000,   0, 224,  64 },
-  {  1000,   1000,   0, 255,  96 },
-  {  1000,   1000,   0,   0, 255 },
-  {  1000,   1000,   0,   0,   0 },
-  {     0,      0,   0,   0,   0 },
-  // DEBUG PATTERNs, normal operation goes back to index 0
-  {   200,    0, 255,   0,   0 },
-  {   200,    0,   0,   0,   0 }
+//  {  1000,   1000,   0,  32, 192 },
+//  {  1000,   1000,   0,  64, 224 },
+//  {  1000,   1000,   0,  96, 225 },
+//  {  1000,   1000,   0, 128,   0 },
+//  {  1000,   1000,   0, 160,   0 },
+//  {  1000,   1000,   0, 192,  32 },
+//  {  1000,   1000,   0, 224,  64 },
+//  {  1000,   1000,   0, 255,  96 },
+//  {  1000,   1000,   0,   0, 255 },
+//  {  1000,   1000,   0,   0,   0 },
+  {     0,      0,   0,   0,   0 }
 };
 
 
@@ -242,16 +210,16 @@ struct rgbElement {
 // This function delays the specified number of 10 microseconds
 void delay_ten_us(unsigned long int us) {
   unsigned long int count;
-  const unsigned long int DelayCount = 7;  // this value was determined by trial and error
 
   while (us > 0) {
-    // Toggling PB5 is done here to force the compiler to do this loop, rather than optimize it away
-    //     PB5 is the one unsed PORTB pin, which is why we can use it here
-    for (count=0; count < DelayCount; count++) {PINB |= 0b00100000;};
+	// Toggling PB5 is done here to force the compiler to do this loop, rather
+	// than optimize it away PB5 is the one unsed PORTB pin, which is why we
+	// can use it here. The value (7) was determined emperically to achieve 10
+	// microseconds
+    for (count=0; count < 7 ; count++) {PINB |= 0b00100000;};
     us--;
   }
 }
-
 
 //// This function delays (1.56 microseconds * x) + 2 microseconds
 ////   (determined empirically)
@@ -267,44 +235,47 @@ void delay_ten_us(unsigned long int us) {
 //  }
 //}
 
-
 void sendrgbElement(int index) {
-  int FadeTime = Multiplier * pgm_read_word(&lightTab[index].fadeTime);
-  int HoldTime = Multiplier * pgm_read_word(&lightTab[index].holdTime);
+  int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
+  int HoldTime = pgm_read_word(&lightTab[index].holdTime);
 
-//  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
   unsigned char Red =  pgm_read_byte(&lightTab[index].red);
   unsigned char Green = pgm_read_byte(&lightTab[index].green);
   unsigned char Blue = pgm_read_byte(&lightTab[index].blue);
-
-  // get previous RGB brightness values from lightTab
   unsigned char redPrev = 0;
   unsigned char greenPrev = 0;
   unsigned char bluePrev = 0;
 
-  // Flip all brightness values if we're using an NPN Transistor
-  if (NPNTransistor == 1) {
-	redPrev = greenPrev = bluePrev = 255;
-	Red = 255 - Red;
-	Green = 255 - Green;
-	Blue = 255 - Blue;
-  }
-
   if (index != 0) {
-//    redPrev = 255 - pgm_read_byte(&lightTab[index-1].red);
     redPrev =  pgm_read_byte(&lightTab[index-1].red);
     greenPrev = pgm_read_byte(&lightTab[index-1].green);
     bluePrev = pgm_read_byte(&lightTab[index-1].blue);
-
-	  // Flip all brightness values if we're using an NPN Transistor
-	  if (NPNTransistor == 1) {
-		redPrev = 255 - redPrev;
-		greenPrev = 255 - greenPrev;
-		bluePrev = 255 - bluePrev;
-	  }
   }
 
+sendvalues(FadeTime, HoldTime, Red, Green, Blue, redPrev, greenPrev, bluePrev);
+}
 
+// Send Values to the Microcontroller Pins
+void sendvalues(int FadeTime, int HoldTime, unsigned char Red, unsigned char Green, unsigned char Blue, unsigned char redPrev, unsigned char greenPrev, unsigned char bluePrev) {
+	FadeTime *= TimeMultiplier;
+	HoldTime *= TimeMultiplier;
+
+	Red /= BrightnessReducer;
+	Green /= BrightnessReducer;
+	Blue /= BrightnessReducer;
+	redPrev /= BrightnessReducer;
+	greenPrev /= BrightnessReducer;
+	bluePrev /= BrightnessReducer;
+
+  // Flip all brightness values if we're using an NPN Transistor
+  if (NPNTransistor == 1) {
+	Red ^= 255;
+	Green ^= 255;
+	Blue ^= 255;
+	redPrev ^= 255;
+	greenPrev ^= 255;
+	bluePrev ^= 255;
+  }
 
   // set color timing values
   //   everytime the fadeCounter reaches this timing value in the fade loop
@@ -313,9 +284,9 @@ void sendrgbElement(int index) {
   int greenTime = 0;
   int blueTime = 0;
 
-  // set values of temp colors
-  //   starting from the previous color values,
-  //   these will change to the color values just gotten from rgbElement over fadeTime
+  // set values of temp lors
+  //   starting from therevious color values,
+  //   these will changeo the color values just gotten from rgbElement over fadeTime
   unsigned char redTemp = redPrev;
   unsigned char greenTemp = greenPrev;
   unsigned char blueTemp = bluePrev;
@@ -346,19 +317,22 @@ void sendrgbElement(int index) {
   }                                            //
   int blueTimeInc = blueTime;                  // increment Blue value every time the fade value increments this amount
 
+
   // set color increment values
-  //   the amount to increment color value each time we update it in the fade loop
-  //   (default value of 1, to slowly increase brightness each time through the fade loop)
+  //   the amount to increment color value each time we update it in the fade
+  //   loop (default value of 1, to slowly increase brightness each time
+  //   through the fade loop)
   unsigned char redInc = 1;
   unsigned char greenInc = 1;
   unsigned char blueInc = 1;
-  // if we need to fade down the brightness, then make the increment values negative
+  // if we need to fade down the brightness, then make the increment values
+  // negative
   if (redDelta < 0) redInc = -1;
   if (greenDelta < 0) greenInc = -1;
   if (blueDelta < 0) blueInc = -1;
 
-  // UGLY
-  // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the fade loop will not be executed)
+  // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the
+  // fade loop will not be executed)
   if (FadeTime == 0) {
     OCR1A = Red;       // update PWM for Red LED on OC1A (pin 6)
     OCR1B = Blue;      // update PWM for Blue LED on OC1B (pin 3)
@@ -366,20 +340,21 @@ void sendrgbElement(int index) {
   }
 
   // fade loop
-  //   this loop will independently fade each LED up or down according to all of the above variables
-  //   this loop is not executed if FadeTime = 0 (since 1 is not <= 0, in the "for" loop)
+  //   this loop will independently fade each LED up or down according to all
+  //   of the above variables this loop is not executed if FadeTime = 0 (since
+  //   1 is not <= 0, in the "for" loop)
   for (int fadeCounter=1; fadeCounter<=FadeTime; fadeCounter++) {
     if ( fadeCounter == redTime ) {
-      redTemp = redTemp + redInc;                 // increment to next red value
-      redTime = redTime + redTimeInc;             // we'll increment Red value again when FadeTime reaches new redTime
+      redTemp += redInc;                 // increment to next red value
+      redTime += redTimeInc;             // we'll increment Red value again when FadeTime reaches new redTime
     }
     if ( fadeCounter == greenTime ) {
-      greenTemp = greenTemp + greenInc;           // increment to next green value
-      greenTime = greenTime + greenTimeInc;       // we'll increment Green value again when FadeTime reaches new greenTime
+      greenTemp += greenInc;           // increment to next green value
+      greenTime += greenTimeInc;       // we'll increment Green value again when FadeTime reaches new greenTime
     }
     if ( fadeCounter == blueTime ) {
-      blueTemp = blueTemp + blueInc;              // increment to next blue value
-      blueTime = blueTime + blueTimeInc;          // we'll increment Blue value again when FadeTime reaches new blueTime
+      blueTemp += blueInc;              // increment to next blue value
+      blueTime += blueTimeInc;          // we'll increment Blue value again when FadeTime reaches new blueTime
     }
 
     OCR1A = redTemp;
@@ -389,7 +364,7 @@ void sendrgbElement(int index) {
 	// delay for a period of Timestep microseconds
     delay_ten_us(TIMESTEP);
 
-	while (Pause == 2) {
+ 	while (Pause == 2) {
 		delay_ten_us(TIMESTEP);
 	}
 
@@ -401,14 +376,9 @@ void sendrgbElement(int index) {
   OCR0A = Green;
 
   // hold all LEDs at current values
-  for (int holdCounter=0; holdCounter<HoldTime; holdCounter++) {
+  for (int holdCounter=0; (holdCounter<HoldTime || Pause == 2); holdCounter++) {
 	// delay for a period of 1ms
 	delay_ten_us(TIMESTEP);
-
-	while (Pause == 2) {
-		delay_ten_us(TIMESTEP);
-	}
-
   }
 }
 
@@ -494,10 +464,12 @@ int teardown(void) {
   sleep_cpu();           // put CPU into Power Down Sleep Mode
 }
 
-int signal(int i) {
-  for (int count=0; count<i; count++) {
-	sendrgbElement(100-40);
-	sendrgbElement(101-40);
+// Blink red n times
+int blink_signal(int n) {
+  for (int i=0; i<n; i++) {
+  // DEBUG PATTERNs, normal operation goes back to index 0
+  sendvalues(150, 0, 255, 0, 0, 0, 0, 0);
+  sendvalues(150, 0,   0, 0, 0, 0, 0, 0);
   }
 }
 
@@ -510,9 +482,7 @@ int main(void) {
     do {
 		sendrgbElement(index);
  		index++;
-// Debugging code to signal the value of Mode with flashes
-//		signal(Mode);
-    } while ((index < 8) && !((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
+    } while (!((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
     index = 0;
   }
 
