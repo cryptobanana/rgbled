@@ -59,26 +59,47 @@ The hardware for this project is very simple:
 #define NPNTransistor 1 // Set to 1 if NPN Transistor is used, otherwise 0 if PNP is used
 
 int Pause = 0;
+int Mode = 0;
+int Multiplier = MULTIPLIER;
 
 ISR(PCINT0_vect) {
-//	while (!(PORTB & 0b00001000)) {
-//	  delay_ten_us(15000);
-//	}
-//	
-	switch(Pause) {
-		case 0:
-			Pause++;
-			break;
-		case 1:
-			Pause++;
-			break;
-		case 2:
-			Pause++;
-			break;
-		case 3:
-			Pause = 0;
-			break;
+   //corresponds to pin2 (PB3)
+	if (PORTB & 0b00000100) {
+		switch(Pause) {
+			case 0:
+				Pause++;
+				break;
+			case 1:
+				Pause++;
+				break;
+			case 2:
+				Pause++;
+				break;
+			case 3:
+				Pause = 0;
+				break;
+		}
 	}
+	else {
+		Mode = PORTB;
+	}
+	// Corresponds to pin7 (PB2)
+//	else if (PORTB & 0b10000000) {
+//		switch(Mode) {
+//			case 0:
+//				Mode++;
+//				break;
+//			case 1:
+//				Mode++;
+//				break;
+//			case 2:
+//				Mode++;
+//				break;
+//			case 3:
+//				Mode = 0;
+//				break;
+//		}
+//	}
 }
 
 /*
@@ -123,19 +144,19 @@ struct rgbElement {
   {  7000,   2500, 255,   0,   0 },
   {  7000,   2500,   0, 255,   0 },
   {  7000,   2500,   0,   0, 255 },
-  {  7000,   2500, 155,  64,   0 },
-  {  7000,   2500,  64, 255,  64 },
-  {  7000,   2500,   0,  64, 255 },
-  {  7000,   2500,  64,   0,  64 },
-  {  7000,   1500, 155,   0,   0 },
-  {  7000,   1500,   0, 255,   0 },
-  {  7000,   1500,   0,   0, 255 },
-  {  7000,   1500, 140,   0, 240 },
-  {  7000,   1500, 155, 155,   0 },
-  {  7000,   1500, 155, 255, 255 },
-  {  7000,   1500, 128, 128, 128 },
-  {  7000,   1500,  48,  48,  58 },
-  {  7000,   1500,   0,   0,   0 },
+  {  5000,   2500, 155,  64,   0 },
+  {  5000,   2500,  64, 255,  64 },
+  {  5000,   2500,   0,  64, 255 },
+  {  5000,   2500,  64,   0,  64 },
+  {  5000,   1500, 155,   0,   0 },
+  {  5000,   1500,   0, 255,   0 },
+  {  5000,   1500,   0,   0, 255 },
+  {  5000,   1500, 140,   0, 240 },
+  {  5000,   1500, 155, 155,   0 },
+  {  5000,   1500, 155, 255, 255 },
+  {  5000,   1500, 128, 128, 128 },
+  {  5000,   1500,  48,  48,  58 },
+  {  5000,   1500,   0,   0,   0 },
   {  2500,   2500, 155,   0,   0 },
   {  2500,   2500, 155, 255,   0 },
   {  2500,   2500,   0, 255,   0 },
@@ -210,7 +231,10 @@ struct rgbElement {
   {  1000,   1000,   0, 255,  96 },
   {  1000,   1000,   0,   0, 255 },
   {  1000,   1000,   0,   0,   0 },
-  {     0,      0,   0,   0,   0 }
+  {     0,      0,   0,   0,   0 },
+  // DEBUG PATTERNs, normal operation goes back to index 0
+  {   200,    0, 255,   0,   0 },
+  {   200,    0,   0,   0,   0 }
 };
 
 
@@ -244,9 +268,9 @@ void delay_ten_us(unsigned long int us) {
 //}
 
 
-void sendrgbElement( int index ) {
-  int FadeTime = MULTIPLIER * pgm_read_word(&lightTab[index].fadeTime);
-  int HoldTime = MULTIPLIER * pgm_read_word(&lightTab[index].holdTime);
+void sendrgbElement(int index) {
+  int FadeTime = Multiplier * pgm_read_word(&lightTab[index].fadeTime);
+  int HoldTime = Multiplier * pgm_read_word(&lightTab[index].holdTime);
 
 //  unsigned char Red = 255 - pgm_read_byte(&lightTab[index].red);
   unsigned char Red =  pgm_read_byte(&lightTab[index].red);
@@ -362,7 +386,7 @@ void sendrgbElement( int index ) {
     OCR1B = blueTemp;
     OCR0A = greenTemp;
 
-	// delay for a period of Timestep * 10microseconds
+	// delay for a period of Timestep microseconds
     delay_ten_us(TIMESTEP);
 
 	while (Pause == 2) {
@@ -397,19 +421,20 @@ int initialize(void) {
   PRR = 0b00000011;
   // disable all Timer interrupts
   TIMSK = 0x00;         // setting a bit to 0 disables interrupts
-  // set up the input and output pins (the ATtiny25 only has PORTB pins)
+  // set up the input and output pins: the ATtiny25 only has PORTB (PB) pins
   DDRB = 0b00010011;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
                         //   PB5 (unused)
                         //   PB4 Blue LED is output
                         //   PB3 Pause interrupt is input
-                        //   PB2 (unused)
+                        //   PB2 Mode interrupt is input
                         //   PB1 Red LED is output
                         //   PB0 Green LED is output
-						//
+
   PORTB |= (1 << PB3); 	// Turns on the pullup for PB3
+  PORTB |= (1 << PB2); 	// Turns on the pullup for PB2
 
   GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
-  PCMSK = 0b00001000;   // PCINT3 bit = 1 to enable Pin Change Interrupts for PB3
+  PCMSK = 0b00001100;   // set PCINT2 and PCINT3 to 1 to enable Pin Change Interrupts for PB2 and PB3
   sei();                // enable microcontroller interrupts
 
   // We will use Timer 1 to fade the Red and Blue LEDs up and down
@@ -457,7 +482,7 @@ int teardown(void) {
   // Shut down everything and put the CPU to sleep
   cli();                 // disable microcontroller interrupts
   delay_ten_us(10000);   // wait .1 second
-  TCCR0B &= 0b11111000;  // CS02:CS00=000 to stop Timer0 (turn off IR emitter)
+  TCCR0B &= 0b11111000;  // CS02:CS00=000 to stop Timer0 (turn off Green LED)
   TCCR0A &= 0b00111111;  // COM0A1:0=00 to disconnect OC0A from PB0 (pin 5)
   TCCR1 &= 0b11110000;   // CS13:CS10=0000 to stop Timer1 (turn off Red and Blue LEDs)
   TCCR1 &= 0b11001111;   // COM1A1:0=00 to disconnect OC1A from PB1 (pin 6)
@@ -469,6 +494,13 @@ int teardown(void) {
   sleep_cpu();           // put CPU into Power Down Sleep Mode
 }
 
+int signal(int i) {
+  for (int count=0; count<i; count++) {
+	sendrgbElement(100-40);
+	sendrgbElement(101-40);
+  }
+}
+
 int main(void) {
   initialize();
 
@@ -476,9 +508,11 @@ int main(void) {
   // Run 50 times ~6 minutes = 5 hours then stop
   for (int count=0; count<50; count++) {
     do {
-      sendrgbElement(index);
-      index++;
-    } while (!((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
+		sendrgbElement(index);
+ 		index++;
+// Debugging code to signal the value of Mode with flashes
+//		signal(Mode);
+    } while ((index < 8) && !((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
     index = 0;
   }
 
