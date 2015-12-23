@@ -20,33 +20,27 @@ Parts list for this RGB Light project:
 1   0.1 uF capacitor
 1   100 uF capacitor, 6v
 1   6-pin header (if you want to re-program the ATtiny25)
-*/
 
-
-/*
-The hardware for this project is very simple:
-    ATtiny25 has 8 pins:
+The ATtiny25 has 8 pins:
        pin 1  RST - connects to programming port pin 5
-       pin 2  PB3 - 
-       pin 3  OC1B - Blue lead of RGB LED 
-	   			(//anode -- through a 47 ohm current limiting resistor)
-       pin 4  gro//und  (pin programming pin 6)
-       pin 5  OC0A -  Green lead of RGB LED 
-	   			(anode -- also connects to programming port pin 4)
-       pin 6  OC1A - Red lead of RGB LED 
-	   			(anode -- through a 47 ohm current limiting resistor) (also connects to programming port pin 1)
-       pin 7  PB2 - programming port pin 3
-       pin 8  +3v (programming pin 2) 
+       pin 2  PB3 -
+       pin 3  OC1B - Blue lead of RGB LED
+       pin 4  ground
+       pin 5  OC0A -  Green lead of RGB LED
+       pin 6  OC1A - Red lead of RGB LED
+       pin 7  PB2
+       pin 8  +3v
 
-	Programmer:
+The AVR Programmer pins to ATtiny25 pins:
 		pin 1: pin6
-		pin 2: +3v
+		pin 2: pin8 (+3v)
 		pin 3: pin7
 		pin 4: pin5
 		pin 5: pin1
-		pin 6: ground	
-    This firmware requires that the clock frequency of the ATtiny
-       is the default that it is shipped with:  8.0MHz
+		pin 6: pin4 (ground)
+
+This firmware requires that the clock frequency of the ATtiny is the default
+that it is shipped with:  8.0MHz
 */
 
 
@@ -55,11 +49,15 @@ The hardware for this project is very simple:
 #include <avr/sleep.h>          // definitions for power-down modes
 #include <avr/pgmspace.h>       // definitions or keeping constants in program memory
 #define TIMESTEP 100
-#define MULTIPLIER 3 //Multiply hold and transition times
-#define NPNTransistor 1 // Set to 1 if NPN Transistor is used, otherwise 0 if PNP is used
+// Multiply hold and transition times
+#define MULTIPLIER 4
+// Set to 1 if NPN Transistor is used, otherwise 0 if PNP is used
+#define NPNTransistor 1
 
 int Pause = 0;
-int BrightnessReducer = 1;
+
+// BrightnessReducer will reduce brightness by the corresponding factor
+int BrightnessReducer = 2;
 int TimeMultiplier = MULTIPLIER;
 
 ISR(PCINT0_vect) {
@@ -89,7 +87,7 @@ int BrightnessLevel = 0;
 			break;
 		}
 	}
-	//Debugging code to signal the value of Mode with flashes
+	// Debugging code to signal the value of Mode with flashes
 	blink_signal(BrightnessLevel);
 }
 
@@ -97,21 +95,21 @@ int BrightnessLevel = 0;
 The following Light Table consists of any number of rgbElements that will fit into the
 2k flash ROM of the ATtiny25 microcontroller.
 
-  The Light Sequences and the notions of fadeTime and holdTime
-  are taken from Pete Griffiths, downloaded from:
-  http://www.petesworld.demon.co.uk/homebrew/PIC/rgb/index.htm
+The Light Sequences and the notions of fadeTime and holdTime
+are taken from Pete Griffiths, downloaded from:
+http://www.petesworld.demon.co.uk/homebrew/PIC/rgb/index.htm
 
-  I modified it to fit my purposes.
+I modified it to fit my purposes.
 
-  The sequence takes about 2 minutes.
-  More precisely:
-       adding all of the fadeTime values together:  121,000
-       adding all of the holdTime values together:  134,000
-       adding these together = 259,000.
-  Since the time values are each 400 microseconds, 255,000 is 102.0 seconds,
-    or, 1.70 minutes, which is 1 minute, 42 seconds.
+The sequence takes about 2 minutes.
+More precisely:
+   adding all of the fadeTime values together:  121,000
+   adding all of the holdTime values together:  134,000
+   adding these together = 259,000.
+Since the time values are each 400 microseconds, 255,000 is 102.0 seconds,
+or, 1.70 minutes, which is 1 minute, 42 seconds.
 
-  The Main function repeats the sequence several times.
+The Main function repeats the sequence several times.
 */
 
 
@@ -468,7 +466,7 @@ int teardown(void) {
 int blink_signal(int n) {
   for (int i=0; i<n; i++) {
   // DEBUG PATTERNs, normal operation goes back to index 0
-  sendvalues(150, 0, 255, 0, 0, 0, 0, 0);
+  sendvalues(150, 0,  64, 0, 0, 0, 0, 0);
   sendvalues(150, 0,   0, 0, 0, 0, 0, 0);
   }
 }
