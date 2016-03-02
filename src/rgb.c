@@ -44,6 +44,7 @@ that it is shipped with:  8.0MHz
 */
 
 
+#include <avr/eeprom.h>
 #include <avr/io.h>             // this contains all the IO port definitions
 #include <avr/interrupt.h>      // definitions for interrupts
 #include <avr/sleep.h>          // definitions for power-down modes
@@ -57,7 +58,7 @@ that it is shipped with:  8.0MHz
 int Pause = 0;
 
 // BrightnessReducer will reduce brightness by the corresponding factor
-int BrightnessReducer = 2;
+uint8_t BrightnessReducer_ee EEMEM = 2;
 int TimeMultiplier = MULTIPLIER;
 
 ISR(PCINT0_vect) {
@@ -76,10 +77,11 @@ int BrightnessLevel = 0;
 				break;
 			case 3:
 				Pause = 0;
-				BrightnessReducer *= 2;
+				uint8_t BrightnessReducer = eeprom_read_byte(&BrightnessReducer_ee) * 2;
 				if (BrightnessReducer > 16){
 					BrightnessReducer = 1;
 				}
+                eeprom_write_byte(&BrightnessReducer_ee, BrightnessReducer);
 				// Calculate log2 of BrightnessReducer
 				for (int i=1; i <= BrightnessReducer; i*=2){
 					BrightnessLevel++;
@@ -258,6 +260,7 @@ void sendvalues(int FadeTime, int HoldTime, unsigned char Red, unsigned char Gre
 	FadeTime *= TimeMultiplier;
 	HoldTime *= TimeMultiplier;
 
+    uint8_t BrightnessReducer = eeprom_read_byte(&BrightnessReducer_ee);
 	Red /= BrightnessReducer;
 	Green /= BrightnessReducer;
 	Blue /= BrightnessReducer;
