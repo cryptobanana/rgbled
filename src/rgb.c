@@ -32,12 +32,12 @@ The ATtiny25 has 8 pins:
        pin 8  +3v
 
 The AVR Programmer pins to ATtiny25 pins:
-		pin 1: pin6
-		pin 2: pin8 (+3v)
-		pin 3: pin7
-		pin 4: pin5
-		pin 5: pin1
-		pin 6: pin4 (ground)
+        pin 1: pin6
+        pin 2: pin8 (+3v)
+        pin 3: pin7
+        pin 4: pin5
+        pin 5: pin1
+        pin 6: pin4 (ground)
 
 This firmware requires that the clock frequency of the ATtiny is the default
 that it is shipped with:  8.0MHz
@@ -64,33 +64,33 @@ int TimeMultiplier = MULTIPLIER;
 ISR(PCINT0_vect) {
 int BrightnessLevel = 0;
    //corresponds to pin2 (PB3)
-	if (PORTB & 0b00000100) {
-		switch(Pause) {
-			case 0:
-				Pause++;
-				break;
-			case 1:
-				Pause++;
-				break;
-			case 2:
-				Pause++;
-				break;
-			case 3:
-				Pause = 0;
-				uint8_t BrightnessReducer = eeprom_read_byte(&BrightnessReducer_ee) * 2;
-				if (BrightnessReducer > 16){
-					BrightnessReducer = 1;
-				}
+    if (PORTB & 0b00000100) {
+        switch(Pause) {
+            case 0:
+                Pause++;
+                break;
+            case 1:
+                Pause++;
+                break;
+            case 2:
+                Pause++;
+                break;
+            case 3:
+                Pause = 0;
+                uint8_t BrightnessReducer = eeprom_read_byte(&BrightnessReducer_ee) * 2;
+                if (BrightnessReducer > 16){
+                    BrightnessReducer = 1;
+                }
                 eeprom_write_byte(&BrightnessReducer_ee, BrightnessReducer);
-				// Calculate log2 of BrightnessReducer
-				for (int i=1; i <= BrightnessReducer; i*=2){
-					BrightnessLevel++;
-				}
-			break;
-		}
-	}
-	// Debugging code to signal the value of Mode with flashes
-	blink_signal(BrightnessLevel);
+                // Calculate log2 of BrightnessReducer
+                for (int i=1; i <= BrightnessReducer; i*=2){
+                    BrightnessLevel++;
+                }
+            break;
+        }
+    }
+    // Debugging code to signal the value of Mode with flashes
+    blink_signal(BrightnessLevel);
 }
 
 /*
@@ -116,82 +116,82 @@ The Main function repeats the sequence several times.
 
 
 struct rgbElement {
-  // Times in ms
-  int fadeTime;
-  int holdTime;
-  unsigned char red;
-  unsigned char green;
-  unsigned char blue;
+    // Times in ms
+    int fadeTime;
+    int holdTime;
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
 } const lightTab[] PROGMEM = {
-  {     0,    500,   0,   0,   0 },
-  {   500,    500, 255,   0,   0 },
-  {   500,    500,   0, 255,   0 },
-  {   500,    500,   0,   0, 255 },
-  {   500,    500,   0, 255, 255 },
-  {   500,    500, 255,   0, 255 },
-  {   500,    500, 255, 255,   0 },
-  {   500,   2500, 255, 255, 255 },
-  {  2500,      0,   0,   0,   0 },
-  {  5000,   2500, 255,   0,   0 },
-  {  5000,   2500,   0, 255,   0 },
-  {  5000,   2500,   0,   0, 255 },
-  {  5000,   2500, 155,  64,   0 },
-  {  5000,   2500,  64, 255,  64 },
-  {  5000,   2500,   0,  64, 255 },
-  {  5000,   2500,  64,   0,  64 },
-  {  5000,   1500, 155,   0,   0 },
-  {  5000,   1500,   0, 255,   0 },
-  {  5000,   1500,   0,   0, 255 },
-  {  5000,   1500, 140,   0, 240 },
-  {  5000,   1500, 155, 155,   0 },
-  {  5000,   1500, 155, 255, 255 },
-  {  5000,   1500, 128, 128, 128 },
-  {  5000,   1500,  48,  48,  58 },
-  {  5000,   1500,   0,   0,   0 },
-  {  2500,   2500, 155,   0,   0 },
-  {  2500,   2500, 155, 255,   0 },
-  {  2500,   2500,   0, 255,   0 },
-  {  2500,   2500,   0, 255, 255 },
-  {  2500,   2500,   0,   0, 255 },
-  {  2500,   2500, 155,   0, 255 },
-  {  2500,   2500, 155,   0,   0 },
-  {  2500,   2500, 155, 255,   0 },
-  {  2500,   2500,   0, 255,   0 },
-  {  2500,   2500,   0, 255, 255 },
-  {  2500,   2500,   0,   0, 255 },
-  {  2500,   2500, 155,   0, 255 },
-  {  2500,   2500, 154,  32,   0 },
-  {  2500,   2500, 154, 128,   0 },
-  {  2500,   2500, 154, 240,   0 },
-  {  2500,   2500, 128, 240,   0 },
-  {  2500,   2500,   0,  16, 255 },
-  {  2500,   2500,   0, 128, 255 },
-  {  2500,   2500,   0, 240, 128 },
-  {  2500,   2500,  16,  16, 240 },
-  {  2500,   2500, 140,  16, 240 },
-  {  2500,   2500,  64,   0, 250 },
-  {  2500,   2500,  10,  10,  10 },
-  {  2500,   2500, 140,   0, 240 },
-  {  2500,   2500,  32,   0, 240 },
-  {  2500,   2500, 128,   0, 128 },
-  {  2500,   2500, 140,   0,  32 },
-  {  1000,   1000,   0,   0,   0 },
-  {  1000,   1000,  32,   0,   0 },
-  {  1000,   1000,  64,   0,   0 },
-  {  1000,   1000, 155, 128,   0 },
-  {  1000,   1000,   0, 160,   0 },
-  {  1000,   1000,   0, 192,   0 },
-  {  1000,   1000,   0, 224,  32 },
-  {  1000,   1000,   0,   0, 255 },
-  {  1000,   1000,  32,   0,   0 },
-  {  1000,   1000,  96,   0,   0 },
-  {  1000,   1000, 160,   0,   0 },
-  {  1000,   1000,   0,  96,   0 },
-  {  1000,   1000,   0, 160,  32 },
-  {  1000,   1000,   0, 224,  64 },
-  {  1000,   1000,   0, 255,  96 },
-  {  1000,   1000,   0,   0, 128 },
-  {  1000,   1000,   0,   0, 160 },
+    {     0,    500,   0,   0,   0 },
+    {   500,    500, 255,   0,   0 },
+    {   500,    500,   0, 255,   0 },
+    {   500,    500,   0,   0, 255 },
+    {   500,    500,   0, 255, 255 },
+    {   500,    500, 255,   0, 255 },
+    {   500,    500, 255, 255,   0 },
+    {   500,   2500, 255, 255, 255 },
+    {  2500,      0,   0,   0,   0 },
+    {  5000,   2500, 255,   0,   0 },
+    {  5000,   2500,   0, 255,   0 },
+    {  5000,   2500,   0,   0, 255 },
+    {  5000,   2500, 155,  64,   0 },
+    {  5000,   2500,  64, 255,  64 },
+    {  5000,   2500,   0,  64, 255 },
+    {  5000,   2500,  64,   0,  64 },
+    {  5000,   1500, 155,   0,   0 },
+    {  5000,   1500,   0, 255,   0 },
+    {  5000,   1500,   0,   0, 255 },
+    {  5000,   1500, 140,   0, 240 },
+    {  5000,   1500, 155, 155,   0 },
+    {  5000,   1500, 155, 255, 255 },
+    {  5000,   1500, 128, 128, 128 },
+    {  5000,   1500,  48,  48,  58 },
+    {  5000,   1500,   0,   0,   0 },
+    {  2500,   2500, 155,   0,   0 },
+    {  2500,   2500, 155, 255,   0 },
+    {  2500,   2500,   0, 255,   0 },
+    {  2500,   2500,   0, 255, 255 },
+    {  2500,   2500,   0,   0, 255 },
+    {  2500,   2500, 155,   0, 255 },
+    {  2500,   2500, 155,   0,   0 },
+    {  2500,   2500, 155, 255,   0 },
+    {  2500,   2500,   0, 255,   0 },
+    {  2500,   2500,   0, 255, 255 },
+    {  2500,   2500,   0,   0, 255 },
+    {  2500,   2500, 155,   0, 255 },
+    {  2500,   2500, 154,  32,   0 },
+    {  2500,   2500, 154, 128,   0 },
+    {  2500,   2500, 154, 240,   0 },
+    {  2500,   2500, 128, 240,   0 },
+    {  2500,   2500,   0,  16, 255 },
+    {  2500,   2500,   0, 128, 255 },
+    {  2500,   2500,   0, 240, 128 },
+    {  2500,   2500,  16,  16, 240 },
+    {  2500,   2500, 140,  16, 240 },
+    {  2500,   2500,  64,   0, 250 },
+    {  2500,   2500,  10,  10,  10 },
+    {  2500,   2500, 140,   0, 240 },
+    {  2500,   2500,  32,   0, 240 },
+    {  2500,   2500, 128,   0, 128 },
+    {  2500,   2500, 140,   0,  32 },
+    {  1000,   1000,   0,   0,   0 },
+    {  1000,   1000,  32,   0,   0 },
+    {  1000,   1000,  64,   0,   0 },
+    {  1000,   1000, 155, 128,   0 },
+    {  1000,   1000,   0, 160,   0 },
+    {  1000,   1000,   0, 192,   0 },
+    {  1000,   1000,   0, 224,  32 },
+    {  1000,   1000,   0,   0, 255 },
+    {  1000,   1000,  32,   0,   0 },
+    {  1000,   1000,  96,   0,   0 },
+    {  1000,   1000, 160,   0,   0 },
+    {  1000,   1000,   0,  96,   0 },
+    {  1000,   1000,   0, 160,  32 },
+    {  1000,   1000,   0, 224,  64 },
+    {  1000,   1000,   0, 255,  96 },
+    {  1000,   1000,   0,   0, 128 },
+    {  1000,   1000,   0,   0, 160 },
 //  {  1000,   1000,   0,  32, 192 },
 //  {  1000,   1000,   0,  64, 224 },
 //  {  1000,   1000,   0,  96, 225 },
@@ -202,23 +202,23 @@ struct rgbElement {
 //  {  1000,   1000,   0, 255,  96 },
 //  {  1000,   1000,   0,   0, 255 },
 //  {  1000,   1000,   0,   0,   0 },
-  {     0,      0,   0,   0,   0 }
+    {     0,      0,   0,   0,   0 }
 };
 
 
 
 // This function delays the specified number of 10 microseconds
 void delay_ten_us(unsigned long int us) {
-  unsigned long int count;
+    unsigned long int count;
 
-  while (us > 0) {
-	// Toggling PB5 is done here to force the compiler to do this loop, rather
-	// than optimize it away PB5 is the one unsed PORTB pin, which is why we
-	// can use it here. The value (7) was determined emperically to achieve 10
-	// microseconds
-    for (count=0; count < 7 ; count++) {PINB |= 0b00100000;};
-    us--;
-  }
+    while (us > 0) {
+        // Toggling PB5 is done here to force the compiler to do this loop, rather
+        // than optimize it away PB5 is the one unsed PORTB pin, which is why we
+        // can use it here. The value (7) was determined emperically to achieve 10
+        // microseconds
+        for (count=0; count < 7 ; count++) {PINB |= 0b00100000;};
+        us--;
+    }
 }
 
 //// This function delays (1.56 microseconds * x) + 2 microseconds
@@ -236,256 +236,255 @@ void delay_ten_us(unsigned long int us) {
 //}
 
 void sendrgbElement(int index) {
-  int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
-  int HoldTime = pgm_read_word(&lightTab[index].holdTime);
+    int FadeTime = pgm_read_word(&lightTab[index].fadeTime);
+    int HoldTime = pgm_read_word(&lightTab[index].holdTime);
 
-  unsigned char Red =  pgm_read_byte(&lightTab[index].red);
-  unsigned char Green = pgm_read_byte(&lightTab[index].green);
-  unsigned char Blue = pgm_read_byte(&lightTab[index].blue);
-  unsigned char redPrev = 0;
-  unsigned char greenPrev = 0;
-  unsigned char bluePrev = 0;
+    unsigned char Red =  pgm_read_byte(&lightTab[index].red);
+    unsigned char Green = pgm_read_byte(&lightTab[index].green);
+    unsigned char Blue = pgm_read_byte(&lightTab[index].blue);
+    unsigned char redPrev = 0;
+    unsigned char greenPrev = 0;
+    unsigned char bluePrev = 0;
 
-  if (index != 0) {
-    redPrev =  pgm_read_byte(&lightTab[index-1].red);
-    greenPrev = pgm_read_byte(&lightTab[index-1].green);
-    bluePrev = pgm_read_byte(&lightTab[index-1].blue);
-  }
+    if (index != 0) {
+        redPrev =  pgm_read_byte(&lightTab[index-1].red);
+        greenPrev = pgm_read_byte(&lightTab[index-1].green);
+        bluePrev = pgm_read_byte(&lightTab[index-1].blue);
+    }
 
-sendvalues(FadeTime, HoldTime, Red, Green, Blue, redPrev, greenPrev, bluePrev);
+    sendvalues(FadeTime, HoldTime, Red, Green, Blue, redPrev, greenPrev, bluePrev);
 }
 
 // Send Values to the Microcontroller Pins
 void sendvalues(int FadeTime, int HoldTime, unsigned char Red, unsigned char Green, unsigned char Blue, unsigned char redPrev, unsigned char greenPrev, unsigned char bluePrev) {
-	FadeTime *= TimeMultiplier;
-	HoldTime *= TimeMultiplier;
+    FadeTime *= TimeMultiplier;
+    HoldTime *= TimeMultiplier;
 
     uint8_t BrightnessReducer = eeprom_read_byte(&BrightnessReducer_ee);
-	Red /= BrightnessReducer;
-	Green /= BrightnessReducer;
-	Blue /= BrightnessReducer;
-	redPrev /= BrightnessReducer;
-	greenPrev /= BrightnessReducer;
-	bluePrev /= BrightnessReducer;
+    Red /= BrightnessReducer;
+    Green /= BrightnessReducer;
+    Blue /= BrightnessReducer;
+    redPrev /= BrightnessReducer;
+    greenPrev /= BrightnessReducer;
+    bluePrev /= BrightnessReducer;
 
-  // Flip all brightness values if we're using an NPN Transistor
-  if (NPNTransistor == 1) {
-	Red ^= 255;
-	Green ^= 255;
-	Blue ^= 255;
-	redPrev ^= 255;
-	greenPrev ^= 255;
-	bluePrev ^= 255;
-  }
-
-  // set color timing values
-  //   everytime the fadeCounter reaches this timing value in the fade loop
-  //   we will update the value for the color (default value of 0 for no updating)
-  int redTime = 0;
-  int greenTime = 0;
-  int blueTime = 0;
-
-  // set values of temp lors
-  //   starting from therevious color values,
-  //   these will changeo the color values just gotten from rgbElement over fadeTime
-  unsigned char redTemp = redPrev;
-  unsigned char greenTemp = greenPrev;
-  unsigned char blueTemp = bluePrev;
-
-  // fade LEDs up or down, from previous values to current values
-  int redDelta = Red - redPrev;                // total amount to fade red value (up or down) during fadeTime
-  int greenDelta = Green - greenPrev;          // total amount to fade green value (up or down) during fadeTime
-  int blueDelta = Blue - bluePrev;             // total amount to fade blue value (up or down) during fadeTime
-
-  if (redDelta != 0) {
-    redTime = (FadeTime / redDelta);           // increment Red value every time we reach this fade value in the fade loop
-    if (redTime < 0) redTime = -redTime;       //    absolute value
-    redTime = redTime + 1;                     // adjust for truncation of integer division
-  }                                            //
-  int redTimeInc = redTime;                    // increment Red value every time the fadeCounter increments this amount
-
-  if (greenDelta != 0) {
-    greenTime = (FadeTime / greenDelta);       // increment Green value every time we reach this fade value in the fade loop
-    if (greenTime < 0) greenTime = -greenTime; //    absolute value
-    greenTime = greenTime + 1;                 // adjust for truncation of integer division
-  }                                            //
-  int greenTimeInc = greenTime;                // increment Green value every time the fadeCounter increments this amount
-
-  if (blueDelta != 0) {
-    blueTime = (FadeTime / blueDelta);         // increment Blue value every time we reach this fade value in the fade loop
-    if (blueTime < 0) blueTime = -blueTime;    //    absolute value
-    blueTime = blueTime + 1;                   // adjust for truncation of integer division
-  }                                            //
-  int blueTimeInc = blueTime;                  // increment Blue value every time the fade value increments this amount
-
-
-  // set color increment values
-  //   the amount to increment color value each time we update it in the fade
-  //   loop (default value of 1, to slowly increase brightness each time
-  //   through the fade loop)
-  unsigned char redInc = 1;
-  unsigned char greenInc = 1;
-  unsigned char blueInc = 1;
-  // if we need to fade down the brightness, then make the increment values
-  // negative
-  if (redDelta < 0) redInc = -1;
-  if (greenDelta < 0) greenInc = -1;
-  if (blueDelta < 0) blueInc = -1;
-
-  // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the
-  // fade loop will not be executed)
-  if (FadeTime == 0) {
-    OCR1A = Red;       // update PWM for Red LED on OC1A (pin 6)
-    OCR1B = Blue;      // update PWM for Blue LED on OC1B (pin 3)
-    OCR0A = Green;       // update PWM for Red LED on OC0A (pin 0)
-  }
-
-  // fade loop
-  //   this loop will independently fade each LED up or down according to all
-  //   of the above variables this loop is not executed if FadeTime = 0 (since
-  //   1 is not <= 0, in the "for" loop)
-  for (int fadeCounter=1; fadeCounter<=FadeTime; fadeCounter++) {
-    if ( fadeCounter == redTime ) {
-      redTemp += redInc;                 // increment to next red value
-      redTime += redTimeInc;             // we'll increment Red value again when FadeTime reaches new redTime
-    }
-    if ( fadeCounter == greenTime ) {
-      greenTemp += greenInc;           // increment to next green value
-      greenTime += greenTimeInc;       // we'll increment Green value again when FadeTime reaches new greenTime
-    }
-    if ( fadeCounter == blueTime ) {
-      blueTemp += blueInc;              // increment to next blue value
-      blueTime += blueTimeInc;          // we'll increment Blue value again when FadeTime reaches new blueTime
+    // Flip all brightness values if we're using an NPN Transistor
+    if (NPNTransistor == 1) {
+        Red ^= 255;
+        Green ^= 255;
+        Blue ^= 255;
+        redPrev ^= 255;
+        greenPrev ^= 255;
+        bluePrev ^= 255;
     }
 
-    OCR1A = redTemp;
-    OCR1B = blueTemp;
-    OCR0A = greenTemp;
+    // set color timing values
+    //   everytime the fadeCounter reaches this timing value in the fade loop
+    //   we will update the value for the color (default value of 0 for no updating)
+    int redTime = 0;
+    int greenTime = 0;
+    int blueTime = 0;
 
-	// delay for a period of Timestep microseconds
-    delay_ten_us(TIMESTEP);
+    // set values of temp lors
+    //   starting from therevious color values,
+    //   these will changeo the color values just gotten from rgbElement over fadeTime
+    unsigned char redTemp = redPrev;
+    unsigned char greenTemp = greenPrev;
+    unsigned char blueTemp = bluePrev;
 
- 	while (Pause == 2) {
-		delay_ten_us(TIMESTEP);
-	}
+    // fade LEDs up or down, from previous values to current values
+    int redDelta = Red - redPrev;                // total amount to fade red value (up or down) during fadeTime
+    int greenDelta = Green - greenPrev;          // total amount to fade green value (up or down) during fadeTime
+    int blueDelta = Blue - bluePrev;             // total amount to fade blue value (up or down) during fadeTime
 
-  }
+    if (redDelta != 0) {
+        redTime = (FadeTime / redDelta);           // increment Red value every time we reach this fade value in the fade loop
+        if (redTime < 0) redTime = -redTime;       //    absolute value
+        redTime = redTime + 1;                     // adjust for truncation of integer division
+    }                                            //
+    int redTimeInc = redTime;                    // increment Red value every time the fadeCounter increments this amount
 
-  // set all LEDs to new brightness values
-  OCR1A = Red;
-  OCR1B = Blue;
-  OCR0A = Green;
+    if (greenDelta != 0) {
+        greenTime = (FadeTime / greenDelta);       // increment Green value every time we reach this fade value in the fade loop
+        if (greenTime < 0) greenTime = -greenTime; //    absolute value
+        greenTime = greenTime + 1;                 // adjust for truncation of integer division
+    }                                            //
+    int greenTimeInc = greenTime;                // increment Green value every time the fadeCounter increments this amount
 
-  // hold all LEDs at current values
-  for (int holdCounter=0; (holdCounter<HoldTime || Pause == 2); holdCounter++) {
-	// delay for a period of 1ms
-	delay_ten_us(TIMESTEP);
-  }
+    if (blueDelta != 0) {
+        blueTime = (FadeTime / blueDelta);         // increment Blue value every time we reach this fade value in the fade loop
+        if (blueTime < 0) blueTime = -blueTime;    //    absolute value
+        blueTime = blueTime + 1;                   // adjust for truncation of integer division
+    }                                            //
+    int blueTimeInc = blueTime;                  // increment Blue value every time the fade value increments this amount
+
+
+    // set color increment values
+    //   the amount to increment color value each time we update it in the fade
+    //   loop (default value of 1, to slowly increase brightness each time
+    //   through the fade loop)
+    unsigned char redInc = 1;
+    unsigned char greenInc = 1;
+    unsigned char blueInc = 1;
+    // if we need to fade down the brightness, then make the increment values
+    // negative
+    if (redDelta < 0) redInc = -1;
+    if (greenDelta < 0) greenInc = -1;
+    if (blueDelta < 0) blueInc = -1;
+
+    // if FadeTime = 0, then just set the LEDs blinking at the RGB values (the
+    // fade loop will not be executed)
+    if (FadeTime == 0) {
+        OCR1A = Red;       // update PWM for Red LED on OC1A (pin 6)
+        OCR1B = Blue;      // update PWM for Blue LED on OC1B (pin 3)
+        OCR0A = Green;       // update PWM for Red LED on OC0A (pin 0)
+    }
+
+    // fade loop
+    //   this loop will independently fade each LED up or down according to all
+    //   of the above variables this loop is not executed if FadeTime = 0 (since
+    //   1 is not <= 0, in the "for" loop)
+    for (int fadeCounter=1; fadeCounter<=FadeTime; fadeCounter++) {
+        if ( fadeCounter == redTime ) {
+            redTemp += redInc;                 // increment to next red value
+            redTime += redTimeInc;             // we'll increment Red value again when FadeTime reaches new redTime
+        }
+        if ( fadeCounter == greenTime ) {
+            greenTemp += greenInc;           // increment to next green value
+            greenTime += greenTimeInc;       // we'll increment Green value again when FadeTime reaches new greenTime
+        }
+        if ( fadeCounter == blueTime ) {
+            blueTemp += blueInc;              // increment to next blue value
+            blueTime += blueTimeInc;          // we'll increment Blue value again when FadeTime reaches new blueTime
+        }
+
+        OCR1A = redTemp;
+        OCR1B = blueTemp;
+        OCR0A = greenTemp;
+
+        // delay for a period of Timestep microseconds
+        delay_ten_us(TIMESTEP);
+
+        while (Pause == 2) {
+            delay_ten_us(TIMESTEP);
+        }
+    }
+
+    // set all LEDs to new brightness values
+    OCR1A = Red;
+    OCR1B = Blue;
+    OCR0A = Green;
+
+    // hold all LEDs at current values
+    for (int holdCounter=0; (holdCounter<HoldTime || Pause == 2); holdCounter++) {
+        // delay for a period of 1ms
+        delay_ten_us(TIMESTEP);
+    }
 }
 
 int initialize(void) {
-  // disable the Watch Dog Timer (since we won't be using it, this will save battery power)
-  MCUSR = 0b00000000;   // first step:   WDRF=0 (Watch Dog Reset Flag)
-  WDTCR = 0b00011000;   // second step:  WDCE=1 and WDE=1 (Watch Dog Change Enable and Watch Dog Enable)
-  WDTCR = 0b00000000;   // third step:   WDE=0
-  // turn off power to the USI and ADC modules (since we won't be using it, this will save battery power)
-  PRR = 0b00000011;
-  // disable all Timer interrupts
-  TIMSK = 0x00;         // setting a bit to 0 disables interrupts
-  // set up the input and output pins: the ATtiny25 only has PORTB (PB) pins
-  DDRB = 0b00010011;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
-                        //   PB5 (unused)
-                        //   PB4 Blue LED is output
-                        //   PB3 Pause interrupt is input
-                        //   PB2 Mode interrupt is input
-                        //   PB1 Red LED is output
-                        //   PB0 Green LED is output
+    // disable the Watch Dog Timer (since we won't be using it, this will save battery power)
+    MCUSR = 0b00000000;   // first step:   WDRF=0 (Watch Dog Reset Flag)
+    WDTCR = 0b00011000;   // second step:  WDCE=1 and WDE=1 (Watch Dog Change Enable and Watch Dog Enable)
+    WDTCR = 0b00000000;   // third step:   WDE=0
+    // turn off power to the USI and ADC modules (since we won't be using it, this will save battery power)
+    PRR = 0b00000011;
+    // disable all Timer interrupts
+    TIMSK = 0x00;         // setting a bit to 0 disables interrupts
+    // set up the input and output pins: the ATtiny25 only has PORTB (PB) pins
+    DDRB = 0b00010011;    // setting a bit to 1 makes it an output, setting a bit to 0 makes it an input
+                          //   PB5 (unused)
+                          //   PB4 Blue LED is output
+                          //   PB3 Pause interrupt is input
+                          //   PB2 Mode interrupt is input
+                          //   PB1 Red LED is output
+                          //   PB0 Green LED is output
 
-  PORTB |= (1 << PB3); 	// Turns on the pullup for PB3
-  PORTB |= (1 << PB2); 	// Turns on the pullup for PB2
+    PORTB |= (1 << PB3);     // Turns on the pullup for PB3
+    PORTB |= (1 << PB2);     // Turns on the pullup for PB2
 
-  GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
-  PCMSK = 0b00001100;   // set PCINT2 and PCINT3 to 1 to enable Pin Change Interrupts for PB2 and PB3
-  sei();                // enable microcontroller interrupts
+    GIMSK = 0b00100000;   // PCIE=1 to enable Pin Change Interrupts
+    PCMSK = 0b00001100;   // set PCINT2 and PCINT3 to 1 to enable Pin Change Interrupts for PB2 and PB3
+    sei();                // enable microcontroller interrupts
 
-  // We will use Timer 1 to fade the Red and Blue LEDs up and down
-  //
-  // start up Timer1 in PWM Mode at 122Hz to drive Red LED on output OC1A and Blue LED on output OC1B:
-  //   8-bit Timer1 OC1A (PB1, pin 6) and OC1B (PB4, pin 3) are set up as outputs to toggle in PWM mode
-  //   Fclk = Clock = 8MHz
-  //   Prescale = 256
-  //   MAX = 255 (by setting OCR1C=255)
-  //   OCR1A =  0 (as an initial value -- this value will increase to increase brightness of Red LED)
-  //   OCR1B =  0 (as an initial value -- this value will increase to increase brightness of Blue LED)
-  //   F = Fclk / (Prescale * (MAX+1) ) = 122Hz
-  //   Driving the Red and Blue LEDs at 122Hz is somewhat arbitrary, but it is
-  //   fast enough to make it seem that the Red and Blue LEDs are not
-  //   flickering. Later in the firmware, the OCR1A and OCR1B compare register values will change,
-  //   but the period for Timer1 will always remain the same (with F = 122Hz, always) --
-  //
-  GTCCR = 0b01110000;   // TSM=0 (we are not using synchronization mode)
-                        // PWM1B=1 for PWM mode for compare register B
-                        // COM1B1:0=11 for inverting PWM on OC1B (Blue LED output pin)
-                        // FOC1B=0 (no Force Output Compare for compare register B)
-                        // FOC1A=0 (no Force Output Compare for compare register A)
-                        // PSR1=0 (do not reset the prescaler)
-                        // PSR0=0 (do not reset the prescaler)
-  TCCR1 = 0b01111001;   // CTC1=0 for PWM mode
-                        // PWM1A=1 for PWM mode for compare register A
-                        // COM1A1:0=11 for inverting PWM on OC1A (Red LED output pin)
-                        // CS13:0=1001 for Prescale=256 (this starts Timer 1)
+    // We will use Timer 1 to fade the Red and Blue LEDs up and down
+    //
+    // start up Timer1 in PWM Mode at 122Hz to drive Red LED on output OC1A and Blue LED on output OC1B:
+    //   8-bit Timer1 OC1A (PB1, pin 6) and OC1B (PB4, pin 3) are set up as outputs to toggle in PWM mode
+    //   Fclk = Clock = 8MHz
+    //   Prescale = 256
+    //   MAX = 255 (by setting OCR1C=255)
+    //   OCR1A =  0 (as an initial value -- this value will increase to increase brightness of Red LED)
+    //   OCR1B =  0 (as an initial value -- this value will increase to increase brightness of Blue LED)
+    //   F = Fclk / (Prescale * (MAX+1) ) = 122Hz
+    //   Driving the Red and Blue LEDs at 122Hz is somewhat arbitrary, but it is
+    //   fast enough to make it seem that the Red and Blue LEDs are not
+    //   flickering. Later in the firmware, the OCR1A and OCR1B compare register values will change,
+    //   but the period for Timer1 will always remain the same (with F = 122Hz, always) --
+    //
+    GTCCR = 0b01110000;   // TSM=0 (we are not using synchronization mode)
+                          // PWM1B=1 for PWM mode for compare register B
+                          // COM1B1:0=11 for inverting PWM on OC1B (Blue LED output pin)
+                          // FOC1B=0 (no Force Output Compare for compare register B)
+                          // FOC1A=0 (no Force Output Compare for compare register A)
+                          // PSR1=0 (do not reset the prescaler)
+                          // PSR0=0 (do not reset the prescaler)
+    TCCR1 = 0b01111001;   // CTC1=0 for PWM mode
+                          // PWM1A=1 for PWM mode for compare register A
+                          // COM1A1:0=11 for inverting PWM on OC1A (Red LED output pin)
+                          // CS13:0=1001 for Prescale=256 (this starts Timer 1)
 
-  // sets the MAX count for the PWM to 255 (to get PWM frequency of 122Hz)
-  OCR1C = 255;
-  OCR1A = 0;
-  OCR1B = 0;
+    // sets the MAX count for the PWM to 255 (to get PWM frequency of 122Hz)
+    OCR1C = 255;
+    OCR1A = 0;
+    OCR1B = 0;
 
 
-  // We will use Timer 0 to fade the Green LED up and down
-  TCCR0A |= ((1 << COM0A1) | (1 << COM0A0) // COM0A1 - COM0A0 (Set OC0A on Compare Match, clear OC0A at TOP)
-		 | (1 << WGM01) | (1 << WGM00)); // WGM01 - WGM00 (set fast PWM)
-  TCCR0B |= (1 << CS01); // Start timer at Fcpu / 256
+    // We will use Timer 0 to fade the Green LED up and down
+    TCCR0A |= ((1 << COM0A1) | (1 << COM0A0) // COM0A1 - COM0A0 (Set OC0A on Compare Match, clear OC0A at TOP)
+           | (1 << WGM01) | (1 << WGM00)); // WGM01 - WGM00 (set fast PWM)
+    TCCR0B |= (1 << CS01); // Start timer at Fcpu / 256
 
-  OCR0A = 0; // initialize Output Compare Register A to 0
+    OCR0A = 0; // initialize Output Compare Register A to 0
 }
 
 int teardown(void) {
-  // Shut down everything and put the CPU to sleep
-  cli();                 // disable microcontroller interrupts
-  delay_ten_us(10000);   // wait .1 second
-  TCCR0B &= 0b11111000;  // CS02:CS00=000 to stop Timer0 (turn off Green LED)
-  TCCR0A &= 0b00111111;  // COM0A1:0=00 to disconnect OC0A from PB0 (pin 5)
-  TCCR1 &= 0b11110000;   // CS13:CS10=0000 to stop Timer1 (turn off Red and Blue LEDs)
-  TCCR1 &= 0b11001111;   // COM1A1:0=00 to disconnect OC1A from PB1 (pin 6)
-  GTCCR &= 0b11001111;   // COM1B1:0=00 to disconnect OC1B from PB4 (pin 3)
-  DDRB = 0x00;           // make PORTB all inputs (saves battery power)
-  PORTB = 0xFF;          // enable pull-up resistors on all PORTB input pins (saves battery power)
-  MCUCR |= 0b00100000;   // SE=1 (bit 5)
-  MCUCR |= 0b00010000;   // SM1:0=10 to enable Power Down Sleep Mode (bits 4, 3)
-  sleep_cpu();           // put CPU into Power Down Sleep Mode
+    // Shut down everything and put the CPU to sleep
+    cli();                 // disable microcontroller interrupts
+    delay_ten_us(10000);   // wait .1 second
+    TCCR0B &= 0b11111000;  // CS02:CS00=000 to stop Timer0 (turn off Green LED)
+    TCCR0A &= 0b00111111;  // COM0A1:0=00 to disconnect OC0A from PB0 (pin 5)
+    TCCR1 &= 0b11110000;   // CS13:CS10=0000 to stop Timer1 (turn off Red and Blue LEDs)
+    TCCR1 &= 0b11001111;   // COM1A1:0=00 to disconnect OC1A from PB1 (pin 6)
+    GTCCR &= 0b11001111;   // COM1B1:0=00 to disconnect OC1B from PB4 (pin 3)
+    DDRB = 0x00;           // make PORTB all inputs (saves battery power)
+    PORTB = 0xFF;          // enable pull-up resistors on all PORTB input pins (saves battery power)
+    MCUCR |= 0b00100000;   // SE=1 (bit 5)
+    MCUCR |= 0b00010000;   // SM1:0=10 to enable Power Down Sleep Mode (bits 4, 3)
+    sleep_cpu();           // put CPU into Power Down Sleep Mode
 }
 
 // Blink red n times
 int blink_signal(int n) {
-  for (int i=0; i<n; i++) {
-  // DEBUG PATTERNs, normal operation goes back to index 0
-  sendvalues(150, 0,  64, 0, 0, 0, 0, 0);
-  sendvalues(150, 0,   0, 0, 0, 0, 0, 0);
-  }
+    for (int i=0; i<n; i++) {
+        // DEBUG PATTERNs, normal operation goes back to index 0
+        sendvalues(150, 0,  64, 0, 0, 0, 0, 0);
+        sendvalues(150, 0,   0, 0, 0, 0, 0, 0);
+    }
 }
 
 int main(void) {
-  initialize();
+    initialize();
 
-  int index = 0;
-  // Run 50 times ~6 minutes = 5 hours then stop
-  for (int count=0; count<50; count++) {
-    do {
-		sendrgbElement(index);
- 		index++;
-    } while (!((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
-    index = 0;
-  }
+    int index = 0;
+    // Run 50 times ~6 minutes = 5 hours then stop
+    for (int count=0; count<50; count++) {
+        do {
+            sendrgbElement(index);
+            index++;
+        } while (!((pgm_read_word(&lightTab[index].fadeTime) == 0) && (pgm_read_word(&lightTab[index].holdTime) == 0)));
+        index = 0;
+    }
 
-  teardown();
+    teardown();
 }
