@@ -7,9 +7,9 @@ AVRDUDE_PORT = usb
 
 all: program-rgb
 
-build-rgb: rgb.hex
+build-rgb: rgb.hex rgb.eep
 
-program-rgb: rgb.hex
+program-rgb: rgb.hex rgb.eep
 
 # Must be run before burning the AVR for the first time...
 # sets the proper fuse for 8MHz internal oscillator with no clk div
@@ -141,6 +141,12 @@ gccversion :
 	@echo $(MSG_FLASH) $@
 	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
+# Create final eeprom output files (.eep) from ELF output file.
+%.eep: %.elf
+	@echo
+	@echo $(MSG_EEPROM) $@
+	$(OBJCOPY) -O $(FORMAT) -j .eeprom --change-section-lma .eeprom=0 $< $@
+
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
@@ -179,6 +185,7 @@ clean_list :
 	@echo
 	@echo $(MSG_CLEANING)
 	$(REMOVE) *.hex
+	$(REMOVE) *.eep
 	$(REMOVE) *.lst
 	$(REMOVE) *.obj
 	$(REMOVE) *.elf
