@@ -5,20 +5,22 @@ AVRDUDE_PROGRAMMER = usbtiny
 AVRDUDE_PORT = usb
 
 
-all: program-rgb
+all: program-rgb program-eeprom
 
-build-rgb: rgb.hex
+build-rgb: rgb.hex rgb.eep
 
+# this programs the dependant hex file using our default avrdude flags
 program-rgb: rgb.hex
+	$(AVRDUDE) $(AVRDUDE_FLAGS) -y $(AVRDUDE_WRITE_FLASH)$<
+
+# this programs the dependant eep file using our default avrdude flags
+program-eeprom: rgb.eep
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_EEPROM)$<
 
 # Must be run before burning the AVR for the first time...
 # sets the proper fuse for 8MHz internal oscillator with no clk div
 burn-fuse:
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -B 250 -u -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -Y 0
-
-# this programs the dependant hex file using our default avrdude flags
-program-%:
-	$(AVRDUDE) $(AVRDUDE_FLAGS) -y $(AVRDUDE_WRITE_FLASH)$<
 
 # create a .hex file
 FORMAT = ihex
@@ -70,6 +72,7 @@ AVRDUDE = avrdude
 # Programming support using avrdude. Settings and variables.
 
 AVRDUDE_WRITE_FLASH = -U flash:w:
+AVRDUDE_WRITE_EEPROM = -U eeprom:w:
 
 AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 
@@ -141,6 +144,12 @@ gccversion :
 	@echo $(MSG_FLASH) $@
 	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
+# Create final eeprom output files (.eep) from ELF output file.
+%.eep: %.elf
+	@echo
+	@echo $(MSG_EEPROM) $@
+	$(OBJCOPY) -O $(FORMAT) -j .eeprom --change-section-lma .eeprom=0 $< $@
+
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
@@ -179,6 +188,7 @@ clean_list :
 	@echo
 	@echo $(MSG_CLEANING)
 	$(REMOVE) *.hex
+	$(REMOVE) *.eep
 	$(REMOVE) *.lst
 	$(REMOVE) *.obj
 	$(REMOVE) *.elf
